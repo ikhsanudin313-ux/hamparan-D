@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light" data-bs-theme="light">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Citra Abadi · Hamparan D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="progressBar"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<!-- ============ SPLASH ============ -->
+<div id="splash">
+  <span class="logo-badge"><i class="bi bi-flower2"></i></span>
+  <div class="spin"></div>
+  <div class="muted">Memuat aplikasi Hamparan D...</div>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen" class="login-screen" hidden>
+  <form class="login-card" id="loginForm" autocomplete="off">
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <span class="logo-badge"><i class="bi bi-flower2"></i></span>
+      <div>
+        <h1>Citra Abadi</h1>
+        <div class="muted">Hamparan D · Belaban Tujuh</div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="fl" for="loginUser">Pengurus <span class="req">*</span></label>
+      <select id="loginUser" class="fs" required></select>
+    </div>
+    <div class="mb-3">
+      <label class="fl" for="loginPin">PIN (4–8 digit) <span class="req">*</span></label>
+      <input id="loginPin" class="fx" type="password" inputmode="numeric" pattern="\d{4,8}" maxlength="8" placeholder="••••" required autocomplete="off">
+    </div>
+    <div id="loginMsg" class="text-out mb-3" role="alert" hidden></div>
+    <button id="btnLogin" type="submit" class="btn-x btn-pri w-100"><i class="bi bi-box-arrow-in-right"></i> Masuk</button>
+    <div class="hint mt-3 text-center">Data panen dan kas hanya dapat dibuka oleh pengurus.</div>
+  </form>
+</div>
+
+<!-- ============ APLIKASI ============ -->
+<div id="appShell" hidden>
+  <div id="sbBackdrop" class="sb-backdrop" hidden></div>
+  <aside id="sidebar" class="sidebar" aria-label="Menu utama">
+    <div class="sb-brand">
+      <span class="logo-badge"><i class="bi bi-flower2"></i></span>
+      <div><b>Citra Abadi</b><span class="muted" style="font-size:12px">Hamparan D · Belaban Tujuh</span></div>
+    </div>
+    <div class="sb-title">NAVIGASI OPERASIONAL</div>
+    <nav id="navList"></nav>
+    <div class="sb-foot">
+      <div class="fw-800"><i class="bi bi-cloud-check"></i> Google Sheets aktif</div>
+      <div class="muted" id="syncInfo">Tumbang Titi · Ketapang</div>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <header class="topbar">
+      <button id="btnMenu" class="icon-btn" aria-label="Buka menu"><i class="bi bi-list"></i></button>
+      <div class="me-auto">
+        <div class="t-sub">KELOMPOK TANI</div>
+        <div class="t-title">Hamparan D · Belaban Tujuh</div>
+      </div>
+      <span class="chip d-none d-sm-inline-flex" title="Harga TBS terbaru"><i class="bi bi-cash-coin"></i> TBS: <b id="hargaChip">–</b></span>
+      <button id="btnSync" class="icon-btn" aria-label="Muat ulang data" title="Muat ulang data"><i class="bi bi-arrow-repeat"></i></button>
+      <button id="btnTheme" class="icon-btn" aria-label="Ganti tema terang/gelap" title="Tema"><i class="bi bi-moon-stars"></i></button>
+      <div class="dropdown">
+        <button class="icon-btn" style="width:auto;padding:0 12px;gap:8px" data-bs-toggle="dropdown" aria-label="Menu akun" aria-expanded="false">
+          <i class="bi bi-person-circle"></i><span class="d-none d-md-inline fw-800" id="userName">–</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li class="px-3 py-2"><div class="fw-800" id="userName2">–</div><span id="userRoleBadge" class="badge-x b-ok">–</span></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><button class="dropdown-item" id="btnPin"><i class="bi bi-key"></i> Ubah PIN saya</button></li>
+          <li><button class="dropdown-item text-danger" id="btnLogout"><i class="bi bi-box-arrow-left"></i> Keluar</button></li>
+        </ul>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ===== DASHBOARD ===== -->
+      <section id="page-dashboard" class="page">
+        <div class="page-head">
+          <div><h2>Dashboard Ringkasan</h2><p>Rekap tonase panen, hasil, potongan, dan saldo kas Hamparan D.</p></div>
+          <div class="actions">
+            <select id="dashPeriode" class="fs" style="width:200px" aria-label="Periode"></select>
+            <button class="btn-x btn-pri" data-go="panen"><i class="bi bi-plus-circle"></i> Input Panen Baru</button>
+          </div>
+        </div>
+        <div id="kpiRow" class="kpi-grid k5"></div>
+        <div class="insight">
+          <div class="c-title"><i class="bi bi-stars" style="color:var(--c-secondary)"></i> Analisis Otomatis</div>
+          <ul id="aiInsight"></ul>
+        </div>
+        <div class="grid2">
+          <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-graph-up"></i> Tonase Panen per Bulan (kg)</div></div><div class="chart-box"><canvas id="chTonase"></canvas></div></div>
+          <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-pie-chart"></i> Komposisi Potongan</div></div><div class="chart-box"><canvas id="chPotongan"></canvas></div></div>
+        </div>
+        <div class="grid2 even">
+          <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-trophy"></i> Tonase Tertinggi per Petani</div></div><div class="chart-box"><canvas id="chTop"></canvas></div></div>
+          <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-receipt"></i> Panen Terakhir</div><button class="btn-x btn-out btn-sm" data-go="panen">Semua</button></div><div id="dashPanen"></div></div>
+        </div>
+        <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-wallet2"></i> Mutasi Kas Terakhir</div><button class="btn-x btn-out btn-sm" data-go="kas">Buka Buku Kas</button></div><div id="dashKas"></div></div>
+      </section>
+
+      <!-- ===== INPUT PANEN ===== -->
+      <section id="page-panen" class="page">
+        <div class="page-head">
+          <div><h2>Input Panen TBS &amp; Kalkulator Gaji Bersih</h2><p>Catat tonase per kapling. Potongan standar dan potongan tetap petani dihitung otomatis.</p></div>
+          <div class="actions"><span class="chip"><i class="bi bi-cash-coin"></i> Harga TBS: <b id="fpHargaChip">–</b>/kg</span><button type="button" class="btn-x btn-gold" id="btnImpor" data-akses="panen.import"><i class="bi bi-file-earmark-spreadsheet"></i> Impor Excel</button></div>
+        </div>
+        <div class="split">
+          <div>
+            <div id="fpEditBanner" class="edit-banner" hidden>
+              <span><i class="bi bi-pencil-square"></i> Mengubah catatan <b id="fpEditNo"></b></span>
+              <button class="btn-x btn-sm btn-out" id="btnBatalEdit" type="button">Batal</button>
+            </div>
+            <form id="formPanen" class="card-x" autocomplete="off" novalidate>
+              <div class="c-head"><div class="c-title"><i class="bi bi-1-circle"></i> Petani &amp; Timbangan</div></div>
+              <div class="fgrid c2">
+                <div><label class="fl" for="fpTanggal">Tanggal timbang <span class="req">*</span></label><input id="fpTanggal" class="fx" type="date" required></div>
+                <div><label class="fl" for="fpPetani">Petani / kapling <span class="req">*</span></label><select id="fpPetani" class="fs" required></select></div>
+              </div>
+              <div class="fgrid c3 mt-3">
+                <div><label class="fl" for="fpBruto">Timbangan bruto</label><div class="ig"><input id="fpBruto" class="fx" type="number" min="0" step="any" inputmode="decimal" placeholder="opsional"><span class="add">Kg</span></div></div>
+                <div><label class="fl" for="fpSortasi">Sortasi / afkir</label><div class="ig"><input id="fpSortasi" class="fx" type="number" min="0" step="any" inputmode="decimal" placeholder="0"><span class="add">Kg</span></div></div>
+                <div><label class="fl" for="fpNetto">Berat netto <span class="req">*</span></label><div class="ig"><input id="fpNetto" class="fx" type="number" min="0" step="any" inputmode="decimal" required><span class="add">Kg</span></div></div>
+              </div>
+              <div class="hint">Isi bruto + sortasi, netto terhitung otomatis. Atau kosongkan bruto dan isi netto langsung.</div>
+
+              <div class="sect-lbl">Potongan tetap petani (bisa diubah untuk transaksi ini)</div>
+              <div class="fgrid c2">
+                <div><label class="fl" for="fpTabungan">Tabungan</label><div class="ig"><span class="add">Rp</span><input id="fpTabungan" class="fx" type="number" min="0" inputmode="numeric"></div></div>
+                <div><label class="fl" for="fpMasjid">Masjid</label><div class="ig"><span class="add">Rp</span><input id="fpMasjid" class="fx" type="number" min="0" inputmode="numeric"></div></div>
+                <div><label class="fl" for="fpOngkos">Ongkos panen</label><div class="seg mb-2" id="fpOngMode"><button type="button" data-m="perkg" class="on">Per kg</button><button type="button" data-m="tetap">Tetap (Rp)</button></div><div class="ig"><span class="add">Rp</span><input id="fpOngkos" class="fx" type="number" min="0" step="any" inputmode="decimal"><span class="add" id="fpOngSuf">/kg</span></div></div>
+              </div>
+
+              <div class="sect-lbl">Potongan manual tambahan</div>
+              <div id="fpManual"></div>
+              <button type="button" class="btn-x btn-out btn-sm" id="btnAddManual"><i class="bi bi-plus-lg"></i> Tambah potongan manual</button>
+
+              <div class="mt-3"><label class="fl" for="fpCatatan">Catatan (opsional)</label><textarea id="fpCatatan" class="fx" maxlength="200" placeholder="Catatan untuk arsip..."></textarea></div>
+            </form>
+          </div>
+
+          <aside class="sticky-side">
+            <div class="card-x" style="border-top:4px solid var(--c-secondary)">
+              <div class="c-head"><div class="c-title"><i class="bi bi-calculator"></i> Pratinjau Kalkulasi</div><span id="fpValid" class="badge-x b-off">Belum lengkap</span></div>
+              <div id="fpCalc"></div>
+              <div class="d-grid gap-2">
+                <button class="btn-x btn-pri" id="btnSavePanen" type="button"><i class="bi bi-check2-circle"></i> Simpan</button>
+                <button class="btn-x btn-gold" id="btnSavePrint" type="button"><i class="bi bi-printer"></i> Simpan &amp; Cetak Slip BPHP</button>
+                <button class="btn-x btn-out" id="btnResetPanen" type="button"><i class="bi bi-arrow-counterclockwise"></i> Reset Formulir</button>
+              </div>
+              <div class="hint mt-2"><i class="bi bi-shield-check"></i> Angka final dihitung ulang oleh server saat disimpan.</div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="card-x">
+          <div class="c-head"><div class="c-title"><i class="bi bi-clock-history"></i> Riwayat Panen</div></div>
+          <div class="filters">
+            <input id="rpSearch" class="fx grow" type="search" placeholder="Cari nama petani, kapling, atau no. bukti..." aria-label="Cari">
+            <select id="rpPeriode" class="fs" aria-label="Periode"></select>
+          </div>
+          <div id="rpTable"></div>
+        </div>
+      </section>
+
+      <!-- ===== SLIP ===== -->
+      <section id="page-slip" class="page">
+        <div class="page-head">
+          <div><h2>Slip BPHP TBS</h2><p>Bukti Pembayaran Hasil Panen. Cetak satu petani atau semua sekaligus, 4 slip per lembar kertas F4 (215 × 330 mm). Pilih "Formulir dari data petani" agar slip terisi otomatis dari data petani.</p></div>
+          <div class="actions">
+            <button class="btn-x btn-pri" id="btnPrintSlip"><i class="bi bi-printer"></i> Cetak</button>
+            <button class="btn-x btn-gold" id="btnPdfSlip"><i class="bi bi-file-earmark-pdf"></i> Unduh PDF</button>
+          </div>
+        </div>
+        <div class="card-x">
+          <div class="filters">
+            <select id="slMode" class="fs" aria-label="Sumber slip"><option value="panen">Dari panen tercatat</option><option value="kosong">Formulir dari data petani (berat diisi tangan)</option></select>
+            <select id="slPeriode" class="fs" aria-label="Periode"></select>
+            <label class="fl" style="margin:0 4px 0 8px">Tanggal</label><input id="slDari" class="fx" type="date" aria-label="Dari tanggal" style="max-width:160px"><span class="muted">s.d.</span><input id="slSampai" class="fx" type="date" aria-label="Sampai tanggal" style="max-width:160px"><button type="button" class="btn-x btn-out btn-sm" id="btnSlReset"><i class="bi bi-x-lg"></i> Reset tanggal</button>
+            <select id="slPetani" class="fs" aria-label="Petani"></select>
+          </div>
+          <div id="slSummary" class="kpi-grid"></div>
+          <div class="hint mb-2">Pratinjau (kertas F4 diperkecil agar muat di layar). Saat mencetak, pilih ukuran kertas F4 / Folio (215 × 330 mm) dan skala 100%.</div>
+          <div class="preview-scroll"><div id="slPreview"></div></div>
+        </div>
+      </section>
+
+      <!-- ===== KAS ===== -->
+      <section id="page-kas" class="page">
+        <div class="page-head">
+          <div><h2>Buku Kas Hamparan D</h2><p>Mutasi pemasukan dan pengeluaran kas kelompok beserta bukti nota di Google Drive.</p></div>
+          <div class="actions">
+            <button class="btn-x btn-pri" id="btnKasMasuk" data-akses="kas.save"><i class="bi bi-plus-circle"></i> Catat Pemasukan</button>
+            <button class="btn-x btn-gold" id="btnKasKeluar" data-akses="kas.save"><i class="bi bi-dash-circle"></i> Catat Pengeluaran</button>
+            <button class="btn-x btn-out" id="btnKasExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+            <button class="btn-x btn-out" id="btnKasPdf"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+          </div>
+        </div>
+        <div id="kasKpi" class="kpi-grid"></div>
+        <div class="grid2">
+          <div class="card-x">
+            <div class="c-head"><div class="c-title"><i class="bi bi-journal-text"></i> Buku Besar Mutasi</div></div>
+            <div class="filters">
+              <input id="kasSearch" class="fx grow" type="search" placeholder="Cari no. kas, keterangan, atau pihak..." aria-label="Cari">
+              <select id="kasPeriode" class="fs" aria-label="Periode"></select>
+              <select id="kasJenis" class="fs" aria-label="Jenis"><option value="">Semua arus kas</option><option>Pemasukan</option><option>Pengeluaran</option></select>
+              <select id="kasKategori" class="fs" aria-label="Kategori"></select>
+            </div>
+            <div id="kasTable"></div>
+          </div>
+          <div class="card-x">
+            <div class="c-head"><div class="c-title"><i class="bi bi-pie-chart"></i> Distribusi Pengeluaran</div></div>
+            <div class="chart-box"><canvas id="chKas"></canvas></div>
+            <div id="kasLegend" class="mt-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PETANI ===== -->
+      <section id="page-petani" class="page">
+        <div class="page-head">
+          <div><h2>Data Petani &amp; Kapling</h2><p>Master anggota Hamparan D beserta potongan tetap yang otomatis masuk ke slip.</p></div>
+          <div class="actions"><button class="btn-x btn-pri" id="btnAddPetani" data-akses="petani.save"><i class="bi bi-person-plus"></i> Tambah Petani</button></div>
+        </div>
+        <div id="ptKpi" class="kpi-grid"></div>
+        <div class="card-x">
+          <div class="filters">
+            <input id="ptSearch" class="fx grow" type="search" placeholder="Cari nama atau kode kapling..." aria-label="Cari">
+            <select id="ptStatus" class="fs" aria-label="Status"><option value="">Semua status</option><option>Aktif</option><option>Nonaktif</option></select>
+          </div>
+          <div id="ptTable"></div>
+        </div>
+      </section>
+
+      <!-- ===== LAPORAN ===== -->
+      <section id="page-laporan" class="page">
+        <div class="page-head">
+          <div><h2>Laporan</h2><p>Rekap per petani dan per bulan, lengkap dengan grafik serta unduhan Excel / PDF.</p></div>
+          <div class="actions">
+            <button class="btn-x btn-out" id="btnLpExcel"><i class="bi bi-file-earmark-excel"></i> Unduh Excel</button>
+            <button class="btn-x btn-gold" id="btnLpPdf"><i class="bi bi-file-earmark-pdf"></i> Unduh PDF</button>
+          </div>
+        </div>
+        <div class="card-x">
+          <div class="fgrid c2">
+            <div><label class="fl" for="lpDari">Dari bulan</label><input id="lpDari" class="fx" type="month"></div>
+            <div><label class="fl" for="lpSampai">Sampai bulan</label><input id="lpSampai" class="fx" type="month"></div>
+          </div>
+        </div>
+        <div class="grid2 even">
+          <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-bar-chart"></i> Netto per Kapling (kg)</div></div><div class="chart-box tall"><canvas id="chLpKapling"></canvas></div></div>
+          <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-cash-stack"></i> Kas Masuk vs Keluar per Bulan</div></div><div class="chart-box tall"><canvas id="chLpKas"></canvas></div></div>
+        </div>
+        <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-people"></i> Rekap per Petani</div></div><div id="lpPetani"></div></div>
+        <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-calendar3"></i> Rekap per Bulan</div></div><div id="lpBulan"></div></div>
+      </section>
+
+      <!-- ===== TARIF & HARGA ===== -->
+      <section id="page-tarif" class="page">
+        <div class="page-head">
+          <div><h2>Tarif, Potongan &amp; Harga TBS</h2><p>Harga TBS harian, tarif potongan per kg, dan identitas pada slip. Hanya Bendahara dan Sekretaris yang dapat mengubah.</p></div>
+        </div>
+        <div class="grid2 even">
+          <div>
+            <div class="card-x" style="border-top:4px solid var(--c-secondary)">
+              <div class="c-head"><div class="c-title"><i class="bi bi-cash-coin"></i> Harga TBS Aktif</div></div>
+              <div class="kpi-val" id="hargaNow">–</div><div class="kpi-sub" id="hargaNowSub"></div>
+              <form id="formHarga" class="fgrid c2 mt-3" autocomplete="off">
+                <div><label class="fl" for="fhTanggal">Berlaku mulai</label><input id="fhTanggal" class="fx" type="date" required></div>
+                <div><label class="fl" for="fhHarga">Harga TBS</label><div class="ig"><span class="add">Rp</span><input id="fhHarga" class="fx" type="number" min="1" inputmode="numeric" required><span class="add">/kg</span></div></div>
+                <div style="grid-column:1/-1"><label class="fl" for="fhCatatan">Catatan</label><input id="fhCatatan" class="fx" maxlength="120" placeholder="Mis. harga PKS periode II"></div>
+                <div style="grid-column:1/-1"><button class="btn-x btn-pri w-100" type="submit" data-akses="harga.save"><i class="bi bi-check2-circle"></i> Simpan Harga</button></div>
+              </form>
+            </div>
+            <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-clock-history"></i> Riwayat Harga</div></div><div id="hargaTable"></div></div>
+          </div>
+          <div>
+            <form id="formTarif" class="card-x" autocomplete="off">
+              <div class="c-head"><div class="c-title"><i class="bi bi-sliders"></i> Tarif Potongan Standar (Rp/kg netto)</div></div>
+              <div class="fgrid c2">
+                <div><label class="fl" for="ftTransport">Transport (prah mobil)</label><div class="ig"><span class="add">Rp</span><input id="ftTransport" class="fx" type="number" min="0" step="any"></div></div>
+                <div><label class="fl" for="ftKelompok">Kelompok</label><div class="ig"><span class="add">Rp</span><input id="ftKelompok" class="fx" type="number" min="0" step="any"></div></div>
+                <div><label class="fl" for="ftPenimbang">Penimbang</label><div class="ig"><span class="add">Rp</span><input id="ftPenimbang" class="fx" type="number" min="0" step="any"></div></div>
+                <div><label class="fl" for="ftKoperasi">Koperasi</label><div class="ig"><span class="add">Rp</span><input id="ftKoperasi" class="fx" type="number" min="0" step="any"></div></div>
+              </div>
+              <div class="hint">Perubahan tarif hanya berlaku untuk panen baru. Slip lama tidak berubah.</div>
+              <div class="sect-lbl">Identitas &amp; penandatangan slip</div>
+              <div class="fgrid">
+                <div><label class="fl" for="ftNama">Nama kelompok (kop slip)</label><input id="ftNama" class="fx" maxlength="150"></div>
+                <div><label class="fl" for="ftJudul">Judul slip</label><input id="ftJudul" class="fx" maxlength="150"></div>
+                <div><label class="fl" for="ftAlamat">Alamat</label><input id="ftAlamat" class="fx" maxlength="150"></div>
+                <div class="fgrid c2" style="gap:14px">
+                  <div><label class="fl" for="ftTempat">Tempat cetak</label><input id="ftTempat" class="fx" maxlength="60"></div>
+                  <div><label class="fl" for="ftKetua">Ketua</label><input id="ftKetua" class="fx" maxlength="60"></div>
+                  <div><label class="fl" for="ftBendahara">Bendahara</label><input id="ftBendahara" class="fx" maxlength="60"></div>
+                  <div><label class="fl" for="ftSekretaris">Sekretaris</label><input id="ftSekretaris" class="fx" maxlength="60"></div>
+                </div>
+              </div>
+              <div class="sect-lbl">Logo kelompok</div>
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span id="logoPrev" class="logo-badge logo-prev"><i class="bi bi-flower2"></i></span>
+                <input id="ftLogoFile" class="fx" type="file" accept="image/png,image/jpeg,image/webp" style="flex:1;min-width:180px">
+                <button type="button" id="btnLogoHapus" class="btn-x btn-out btn-sm"><i class="bi bi-x-lg"></i> Hapus logo</button>
+              </div>
+              <div class="hint">Logo diperkecil otomatis, tampil di aplikasi dan di kop slip. Klik "Simpan Tarif &amp; Identitas" untuk menyimpan.</div>
+              <button class="btn-x btn-pri w-100 mt-3" type="submit" data-akses="pengaturan.save"><i class="bi bi-check2-circle"></i> Simpan Tarif &amp; Identitas</button>
+            </form>
+            <div class="card-x mt-3" data-akses="contoh.hapus">
+              <div class="c-head"><div class="c-title"><i class="bi bi-eraser"></i> Data Contoh</div></div>
+              <div class="hint mb-2">Hapus data contoh bawaan (panen, kas, harga, dan petani contoh) sebelum aplikasi dipakai sungguhan.</div>
+              <button type="button" class="btn-x btn-out w-100" id="btnHapusContoh"><i class="bi bi-trash text-out"></i> Hapus Data Contoh</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PENGGUNA & LOG ===== -->
+      <section id="page-pengguna" class="page">
+        <div class="page-head">
+          <div><h2>Pengguna &amp; Log Aktivitas</h2><p>Kelola akun pengurus dan pantau semua perubahan data. Ketua dan Sekretaris.</p></div>
+          <div class="actions"><button class="btn-x btn-pri" id="btnAddUser"><i class="bi bi-person-plus"></i> Tambah Pengurus</button></div>
+        </div>
+        <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-shield-lock"></i> Akun Pengurus</div></div><div id="usTable"></div></div>
+        <div class="card-x"><div class="c-head"><div class="c-title"><i class="bi bi-activity"></i> Log Aktivitas (200 terbaru)</div><button class="btn-x btn-out btn-sm" id="btnLogRefresh"><i class="bi bi-arrow-repeat"></i> Muat</button></div><div id="logTable"></div></div>
+      </section>
+
+    </main>
+  </div>
+
+  <nav id="bottomNav" class="bottom-nav" aria-label="Navigasi bawah"></nav>
+</div>
+
+<!-- ============ MODAL: KAS ============ -->
+<div class="modal fade" id="mdKas" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"><form class="modal-content" id="formKas" autocomplete="off">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-journal-plus"></i> <span id="mdKasTitle">Catat Mutasi Kas</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body">
+      <label class="fl">Jenis arus kas <span class="req">*</span></label>
+      <div class="seg mb-3" id="fkJenis"><button type="button" data-j="Pemasukan" class="in">Pemasukan (kas masuk)</button><button type="button" data-j="Pengeluaran" class="out">Pengeluaran (kas keluar)</button></div>
+      <div class="fgrid c2">
+        <div><label class="fl" for="fkNo">Nomor transaksi</label><input id="fkNo" class="fx" readonly value="Otomatis"></div>
+        <div><label class="fl" for="fkTanggal">Tanggal <span class="req">*</span></label><input id="fkTanggal" class="fx" type="date" required></div>
+        <div><label class="fl" for="fkKategori">Kategori <span class="req">*</span></label><select id="fkKategori" class="fs" required></select></div>
+        <div><label class="fl" for="fkJumlah">Nominal <span class="req">*</span></label><div class="ig"><span class="add">Rp</span><input id="fkJumlah" class="fx" type="number" min="1" inputmode="numeric" required></div><div id="fkSaldoHint" class="hint"></div></div>
+        <div style="grid-column:1/-1"><label class="fl" for="fkKet">Uraian keterangan <span class="req">*</span></label><textarea id="fkKet" class="fx" maxlength="200" required></textarea></div>
+        <div style="grid-column:1/-1"><label class="fl" for="fkPihak">Penerima / toko / pelaksana</label><input id="fkPihak" class="fx" maxlength="80"></div>
+        <div style="grid-column:1/-1"><label class="fl" for="fkFile">Bukti nota / kuitansi (JPG, PNG, PDF · maks. 5 MB)</label><input id="fkFile" class="fx" type="file" accept="image/jpeg,image/png,application/pdf" style="padding-top:10px"><div id="fkFileInfo" class="hint"></div></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn-x btn-pri" id="btnSaveKas"><i class="bi bi-check2-circle"></i> Simpan Transaksi</button></div>
+  </form></div>
+</div>
+
+<!-- ============ MODAL: PETANI ============ -->
+<div class="modal fade" id="mdPetani" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"><form class="modal-content" id="formPetani" autocomplete="off">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-person-vcard"></i> <span id="mdPetaniTitle">Data Petani</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="fptID">
+      <div class="fgrid c2">
+        <div><label class="fl" for="fptNama">Nama petani <span class="req">*</span></label><input id="fptNama" class="fx" maxlength="60" required></div>
+        <div><label class="fl" for="fptKapling">Kode kapling</label><input id="fptKapling" class="fx" maxlength="20" placeholder="D-01"></div>
+        <div><label class="fl" for="fptLuas">Luas lahan</label><div class="ig"><input id="fptLuas" class="fx" type="number" min="0" step="any"><span class="add">Ha</span></div></div>
+        <div><label class="fl" for="fptHP">Nomor HP / WhatsApp</label><input id="fptHP" class="fx" maxlength="20" inputmode="tel"></div>
+        <div style="grid-column:1/-1"><label class="fl" for="fptRek">Rekening pencairan (opsional)</label><input id="fptRek" class="fx" maxlength="40" placeholder="Bank / no. rekening"></div>
+      </div>
+      <div class="sect-lbl">Potongan tetap (otomatis masuk ke setiap slip)</div>
+      <div class="fgrid c2">
+        <div><label class="fl" for="fptTab">Tabungan</label><div class="ig"><span class="add">Rp</span><input id="fptTab" class="fx" type="number" min="0" inputmode="numeric"></div></div>
+        <div><label class="fl" for="fptMsj">Masjid</label><div class="ig"><span class="add">Rp</span><input id="fptMsj" class="fx" type="number" min="0" inputmode="numeric"></div></div>
+        <div><label class="fl" for="fptOngJ">Ongkos panen</label><select id="fptOngJ" class="fs"><option value="tidak">Tidak ada</option><option value="perkg">Per kg netto</option><option value="nominal">Tetap (Rp per transaksi)</option></select></div>
+        <div><label class="fl" for="fptOngN">Nilai ongkos panen</label><div class="ig"><span class="add">Rp</span><input id="fptOngN" class="fx" type="number" min="0" step="any"><span class="add" id="fptOngSuf">/kg</span></div><div class="hint" id="fptOngHint"></div></div>
+        <div><label class="fl" for="fptStatus">Status</label><select id="fptStatus" class="fs"><option>Aktif</option><option>Nonaktif</option></select></div>
+        <div><label class="fl" for="fptCatatan">Catatan</label><input id="fptCatatan" class="fx" maxlength="200"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn-x btn-pri"><i class="bi bi-check2-circle"></i> Simpan</button></div>
+  </form></div>
+</div>
+
+<!-- ============ MODAL: USER ============ -->
+<div class="modal fade" id="mdUser" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="formUser" autocomplete="off">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-person-gear"></i> <span id="mdUserTitle">Pengurus</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body fgrid">
+      <input type="hidden" id="fuID">
+      <div><label class="fl" for="fuNama">Nama <span class="req">*</span></label><input id="fuNama" class="fx" maxlength="40" required></div>
+      <div><label class="fl" for="fuPeran">Peran <span class="req">*</span></label><select id="fuPeran" class="fs"><option>Ketua</option><option>Sekretaris</option><option>Bendahara</option></select></div>
+      <div><label class="fl" for="fuAktif">Status akun</label><select id="fuAktif" class="fs"><option value="Ya">Aktif</option><option value="Tidak">Nonaktif</option></select></div>
+      <div id="fuPinWrap"><label class="fl" for="fuPin">PIN awal (4–8 digit) <span class="req">*</span></label><input id="fuPin" class="fx" type="password" inputmode="numeric" maxlength="8"></div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn-x btn-pri"><i class="bi bi-check2-circle"></i> Simpan</button></div>
+  </form></div>
+</div>
+
+<!-- ============ MODAL: PIN (ubah sendiri / reset oleh Ketua) ============ -->
+<div class="modal fade" id="mdPin" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><form class="modal-content" id="formPin" autocomplete="off">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-key"></i> <span id="mdPinTitle">Ubah PIN</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body fgrid">
+      <input type="hidden" id="fpnID">
+      <div id="fpnLamaWrap"><label class="fl" for="fpnLama">PIN lama <span class="req">*</span></label><input id="fpnLama" class="fx" type="password" inputmode="numeric" maxlength="8"></div>
+      <div><label class="fl" for="fpnBaru">PIN baru (4–8 digit) <span class="req">*</span></label><input id="fpnBaru" class="fx" type="password" inputmode="numeric" maxlength="8" required></div>
+      <div><label class="fl" for="fpnUlang">Ulangi PIN baru <span class="req">*</span></label><input id="fpnUlang" class="fx" type="password" inputmode="numeric" maxlength="8" required></div>
+      <div class="hint">Hindari PIN mudah ditebak (1234, 0000, angka berulang). Jangan bagikan PIN kepada siapa pun.</div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn-x btn-pri"><i class="bi bi-check2-circle"></i> Simpan PIN</button></div>
+  </form></div>
+</div>
+
+<!-- ============ MODAL: PRATINJAU SLIP / DOKUMEN ============ -->
+<div class="modal fade" id="mdPreview" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-receipt"></i> <span id="mdPreviewTitle">Pratinjau Slip BPHP</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body"><div class="preview-scroll"><div id="mdPreviewBody"></div></div></div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Tutup</button><button type="button" class="btn-x btn-pri" id="btnPreviewPrint"><i class="bi bi-printer"></i> Cetak</button><button type="button" class="btn-x btn-gold" id="btnPreviewPdf"><i class="bi bi-file-earmark-pdf"></i> Unduh PDF</button></div>
+  </div></div>
+</div>
+
+<!-- ============ MODAL: BUKTI NOTA ============ -->
+<div class="modal fade" id="mdBukti" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-paperclip"></i> <span id="mdBuktiTitle">Bukti Nota</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body text-center" id="mdBuktiBody"></div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Tutup</button><a class="btn-x btn-pri" id="btnBuktiUnduh" download="bukti"><i class="bi bi-download"></i> Unduh</a></div>
+  </div></div>
+</div>
+
+<!-- ============ MODAL: KONFIRMASI ============ -->
+<!-- ============ MODAL: IMPOR PANEN DARI EXCEL ============ -->
+<div class="modal fade" id="mdImpor" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-file-earmark-spreadsheet"></i> Impor Data Panen dari Excel</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body">
+      <div class="hint mb-2">1) Unduh templat, 2) isi satu baris per timbangan (kolom wajib: Tanggal, Kapling atau Nama, dan Netto atau Bruto), 3) pilih berkasnya. Potongan tetap petani (tabungan, masjid, ongkos) terisi otomatis kecuali kolomnya diisi di Excel.</div>
+      <div class="d-flex gap-2 flex-wrap mb-3 align-items-center">
+        <button type="button" class="btn-x btn-out" id="btnTemplate"><i class="bi bi-download"></i> Unduh Templat Excel</button>
+        <input id="imporFile" class="fx" type="file" accept=".xlsx,.xls,.csv" style="flex:1;min-width:220px">
+      </div>
+      <div id="imporSum" class="kpi-grid"></div>
+      <div id="imporPreview"></div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Tutup</button><button type="button" class="btn-x btn-pri" id="btnImporSimpan" disabled><i class="bi bi-check2-circle"></i> Impor Baris Valid</button></div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="mdConfirm" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="mdConfirmTitle">Konfirmasi</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body" id="mdConfirmBody"></div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="button" class="btn-x btn-red" id="btnConfirmOk">Ya, lanjutkan</button></div>
+  </div></div>
+</div>
+
+<div id="printArea"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
