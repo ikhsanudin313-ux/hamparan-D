@@ -23,7 +23,7 @@ const NAV = [
 ];
 const ACL = {
   'petani.save': ['Sekretaris'], 'petani.status': ['Sekretaris'], 'petani.delete': ['Sekretaris'], 'contoh.hapus': ['Ketua', 'Sekretaris'],
-  'panen.save': ['Sekretaris'], 'panen.import': ['Sekretaris'], 'panen.delete': ['Sekretaris'],
+  'panen.save': ['Sekretaris'], 'panen.import': ['Sekretaris'], 'panen.delete': ['Sekretaris'], 'panen.sinkronHarga': ['Sekretaris'],
   'harga.save': ['Bendahara', 'Sekretaris'], 'harga.delete': ['Bendahara', 'Sekretaris'], 'pengaturan.save': ['Bendahara', 'Sekretaris'],
   'kas.save': ['Bendahara', 'Sekretaris'], 'kas.delete': ['Bendahara', 'Sekretaris'], 'tabungan.save': ['Ketua'], 'tabungan.delete': ['Ketua'], 'penabung.save': ['Ketua'], 'penabung.delete': ['Ketua'], 'pinjaman.save': ['Ketua'], 'pinjaman.delete': ['Ketua'],
   'user.save': ['Ketua', 'Sekretaris'], 'user.resetPin': ['Ketua', 'Sekretaris'], 'log.get': ['Ketua', 'Sekretaris']
@@ -489,6 +489,19 @@ function renderManual() {
     + '<button type="button" class="btn-x btn-out btn-ic" data-act="hapusManual" data-id="' + i + '" aria-label="Hapus potongan"><i class="bi bi-x-lg"></i></button></div>').join('');
 }
 
+/** Samakan harga semua catatan panen dengan harga TBS pada tanggalnya. */
+function sinkronHargaPanen() {
+  const beda = S.data.panen.filter(r => !r._pending && hargaPada(String(r.Tanggal)) > 0 && hargaPada(String(r.Tanggal)) !== num(r.Harga));
+  if (!beda.length) return toast('Semua catatan panen sudah memakai harga sesuai tanggalnya.', 'success');
+  konfirmasi('Sesuaikan harga ke tanggal?', '<b>' + beda.length + '</b> catatan panen memakai harga yang berbeda dari harga TBS pada tanggalnya. Hasil kotor dan gaji bersih akan dihitung ulang (potongan tidak berubah).', async () => {
+    try {
+      const r = await api('panen.sinkronHarga', {});
+      S.data.panen = r.panen; renderHalaman(S.page);
+      toast(r.diubah + ' catatan disesuaikan' + (r.dilewati.length ? ', ' + r.dilewati.length + ' dilewati: ' + r.dilewati.join('; ') : '') + '.', r.dilewati.length ? 'warning' : 'success');
+    } catch (e) { toast('Gagal menyesuaikan: ' + e.message, 'danger'); }
+  }, 'Sesuaikan');
+}
+
 function bacaFormPanen() {
   const pet = petaniById($('#fpPetani').value);
   const tgl = $('#fpTanggal').value;
@@ -499,7 +512,7 @@ function bacaFormPanen() {
   let tarif = tarifAktif();
   const lama = S.editId ? S.data.panen.find(r => r.ID === S.editId) : null;
   if (lama) tarif = { transport: num(lama.Tarif_Transport), kelompok: num(lama.Tarif_Kelompok), penimbang: num(lama.Tarif_Penimbang), koperasi: num(lama.Tarif_Koperasi) };
-  const hrg = lama && lama.Tanggal === tgl ? num(lama.Harga) : harga;
+  const hrg = harga;   // harga TBS selalu mengikuti tanggal timbang
   const calc = hitung({ netto, harga: hrg, tarif, tabungan: num($('#fpTabungan').value), masjid: num($('#fpMasjid').value), ongkos: ongkosJumlah(netto), pajak: 0, manual });
   let msg = '';
   if (!tgl) msg = 'Tanggal wajib diisi.';
@@ -1706,6 +1719,7 @@ function pasangEvent() {
   $('#fpManual').addEventListener('input', e => { const t = e.target; if (t.dataset.mi === undefined) return; FP.manual[+t.dataset.mi][t.dataset.mf] = t.value; hitungForm(); });
   $('#btnImpor').onclick = () => { IMPOR.rows = []; $('#imporFile').value = ''; $('#imporSum').innerHTML = ''; $('#imporPreview').innerHTML = ''; $('#btnImporSimpan').disabled = true; modal('mdImpor').show(); };
   $('#btnTemplate').onclick = unduhTemplatPanen; $('#imporFile').addEventListener('change', e => pilihBerkasImpor(e.target.files[0])); $('#btnImporSimpan').onclick = simpanImpor;
+  $('#btnSinkronHarga').onclick = sinkronHargaPanen;
   $('#btnSavePanen').onclick = () => simpanPanen(false);
   $('#btnSavePrint').onclick = () => simpanPanen(true);
   $('#btnResetPanen').onclick = () => { resetFormPanen(); try { localStorage.removeItem('hd_draft_panen'); } catch (e) { /* abaikan */ } };
