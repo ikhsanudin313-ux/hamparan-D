@@ -13,6 +13,7 @@ const NAV = [
   { id: 'dashboard', ikon: 'bi-grid-1x2', label: 'Dashboard Ringkasan', pendek: 'Beranda', bawah: true },
   { id: 'panen', ikon: 'bi-basket3', label: 'Input Timbangan Panen', pendek: 'Panen', bawah: true },
   { id: 'slip', ikon: 'bi-receipt', label: 'Slip BPHP TBS', pendek: 'Slip', bawah: true },
+  { id: 'upah', ikon: 'bi-person-workspace', label: 'Upah Panen', pendek: 'Upah' },
   { id: 'kas', ikon: 'bi-wallet2', label: 'Buku Kas Hamparan', pendek: 'Kas', bawah: true },
   { id: 'tabungan', ikon: 'bi-piggy-bank', label: 'Tabungan Petani', pendek: 'Tabungan' },
   { id: 'pinjaman', ikon: 'bi-cash-coin', label: 'Pinjaman Kelompok', pendek: 'Pinjaman' },
@@ -25,7 +26,7 @@ const ACL = {
   'petani.save': ['Sekretaris'], 'petani.status': ['Sekretaris'], 'petani.delete': ['Sekretaris'], 'contoh.hapus': ['Ketua', 'Sekretaris'],
   'panen.save': ['Sekretaris'], 'panen.import': ['Sekretaris'], 'panen.delete': ['Sekretaris'], 'panen.sinkronHarga': ['Sekretaris'],
   'harga.save': ['Bendahara', 'Sekretaris'], 'harga.delete': ['Bendahara', 'Sekretaris'], 'pengaturan.save': ['Bendahara', 'Sekretaris'],
-  'kas.save': ['Bendahara', 'Sekretaris'], 'kas.delete': ['Bendahara', 'Sekretaris'], 'tabungan.save': ['Ketua'], 'tabungan.delete': ['Ketua'], 'penabung.save': ['Ketua'], 'penabung.delete': ['Ketua'], 'pinjaman.save': ['Ketua'], 'pinjaman.delete': ['Ketua'],
+  'kas.save': ['Bendahara', 'Sekretaris'], 'kas.delete': ['Bendahara', 'Sekretaris'], 'tabungan.save': ['Ketua'], 'tabungan.delete': ['Ketua'], 'penabung.save': ['Ketua'], 'penabung.delete': ['Ketua'], 'pinjaman.save': ['Ketua'], 'pinjaman.delete': ['Ketua'], 'upah.save': ['Bendahara', 'Sekretaris'], 'upah.delete': ['Bendahara', 'Sekretaris'],
   'user.save': ['Ketua', 'Sekretaris'], 'user.resetPin': ['Ketua', 'Sekretaris'], 'log.get': ['Ketua', 'Sekretaris']
 };
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -33,7 +34,7 @@ const WARNA = ['#1B5E20', '#2E7D32', '#4CAF50', '#81C784', '#F9A825', '#FFB74D',
 
 const S = {
   token: null, user: null, page: 'dashboard', editId: null, editKasId: null, editPnbId: null, editPinId: null, pinJenis: 'Pinjam', editTabId: null, tabJenis: 'Setor', kasJenis: 'Pemasukan',
-  data: { petani: [], harga: [], panen: [], kas: [], tabungan: [], penabung: [], pinjaman: [], pengaturan: {}, kategoriKas: {}, users: [], log: [] },
+  data: { petani: [], harga: [], panen: [], kas: [], tabungan: [], penabung: [], pinjaman: [], upah: [], pengaturan: {}, kategoriKas: {}, users: [], log: [] },
   logoBaru: null, ttdBaru: {}, charts: {}, busy: 0, terakhirSinkron: 0, slipAktif: [], tmpSeq: 0
 };
 
@@ -219,7 +220,7 @@ function muatBootstrap() {
 
 function terapkanData(d) {
   S.user = d.user;
-  S.data.petani = d.petani; S.data.harga = d.harga; S.data.panen = d.panen; S.data.kas = d.kas; S.data.tabungan = d.tabungan || []; S.data.penabung = d.penabung || []; S.data.pinjaman = d.pinjaman || [];
+  S.data.petani = d.petani; S.data.harga = d.harga; S.data.panen = d.panen; S.data.kas = d.kas; S.data.tabungan = d.tabungan || []; S.data.penabung = d.penabung || []; S.data.pinjaman = d.pinjaman || []; S.data.upah = d.upah || [];
   S.data.pengaturan = d.pengaturan; S.data.kategoriKas = d.kategoriKas; S.data.users = d.users || [];
   S.terakhirSinkron = Date.now();
   terapkanLogo();
@@ -231,7 +232,7 @@ function terapkanData(d) {
 /** Sinkron ulang dari server (tombol / saat tab kembali aktif). */
 async function sinkron(diam) {
   if (S.busy > 0 || !S.token) return;
-  if (S.data.panen.some(r => r._pending) || S.data.kas.some(r => r._pending) || S.data.tabungan.some(r => r._pending) || S.data.pinjaman.some(r => r._pending) || S.data.petani.some(r => r._pending)) return;
+  if (S.data.panen.some(r => r._pending) || S.data.kas.some(r => r._pending) || S.data.tabungan.some(r => r._pending) || S.data.pinjaman.some(r => r._pending) || S.data.upah.some(r => r._pending) || S.data.petani.some(r => r._pending)) return;
   try {
     const d = await api('refresh');
     terapkanData(d);
@@ -268,7 +269,7 @@ function tutupSidebar() { $('#sidebar').classList.remove('open'); $('#sbBackdrop
 
 function renderHalaman(id) {
   ({
-    dashboard: renderDashboard, panen: renderPanen, slip: renderSlip, kas: renderKas, tabungan: renderTabungan, pinjaman: renderPinjaman,
+    dashboard: renderDashboard, panen: renderPanen, slip: renderSlip, kas: renderKas, tabungan: renderTabungan, pinjaman: renderPinjaman, upah: renderUpah,
     petani: renderPetani, laporan: renderLaporan, tarif: renderTarif, pengguna: renderPengguna
   }[id] || (() => { }))();
 }
@@ -1245,6 +1246,145 @@ function olahTtd(file) {
 }
 
 /* ============================================================
+   UPAH PANEN (pemanen per petani + upah penimbang)
+   ============================================================ */
+const UPAH_CSS = '.up-grid{width:100%;border-collapse:collapse;table-layout:fixed;font-family:Arial,Helvetica,sans-serif;color:#000}'
+  + '.up-grid>tbody>tr>td{vertical-align:top;width:50%;padding:0 0 9mm 0;page-break-inside:avoid}.up-grid td.k0{padding-right:6mm}.up-grid td.k1{padding-left:6mm}'
+  + '.up-t{text-align:center;font-weight:bold;font-size:9pt;margin-bottom:4mm}.up-p{font-weight:bold;font-size:8.5pt;margin-bottom:2mm}'
+  + '.up-y{background:#FFFF00;padding:1px 8px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+  + '.up-tb{width:100%;border-collapse:collapse;font-size:8pt}.up-tb th,.up-tb td{border:1px solid #000;padding:2px 4px;height:5mm}'
+  + '.up-tb th{font-weight:normal;text-align:center}.up-tb td.c{text-align:center}.up-tb td.r{text-align:right}'
+  + '.up-tb tr.tot td{font-weight:bold;text-align:center;border-top:2px solid #000}.up-tb tr.tot td.y{background:#FFFF00;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+function upahTersaring() {
+  const d = $('#upDari').value, sp = $('#upSampai').value;
+  return S.data.upah.filter(x => (!d || String(x.Tanggal) >= d) && (!sp || String(x.Tanggal) <= sp));
+}
+function rekapUpah() {
+  const L = upahTersaring(), m = {}, d = $('#upDari').value, sp = $('#upSampai').value;
+  L.filter(x => x.Jenis === 'Pemanen').forEach(x => {
+    const pm = String(x.Pemanen).trim(), g = m[pm.toLowerCase()] = m[pm.toLowerCase()] || { nama: pm, baris: {}, total: 0 };
+    const k = String(x.Nama_Petani).trim().toLowerCase() + '|' + num(x.Upah);
+    const b = g.baris[k] = g.baris[k] || { petani: x.Nama_Petani, upah: num(x.Upah), tonase: 0, jumlah: 0 };
+    b.tonase += num(x.Tonase); b.jumlah += num(x.Jumlah); g.total += num(x.Jumlah);
+  });
+  const pemanen = Object.keys(m).map(k => ({ nama: m[k].nama, total: m[k].total, baris: Object.keys(m[k].baris).map(i => m[k].baris[i]).sort((a, b) => String(a.petani).localeCompare(String(b.petani), 'id')) })).sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+  const P = S.data.panen.filter(r => !r._pending && (!d || String(r.Tanggal) >= d) && (!sp || String(r.Tanggal) <= sp));
+  const tonase = sum(P, 'Netto'), jml = sum(P, 'Penimbang'), tambahan = L.filter(x => x.Jenis === 'Tambahan');
+  return { pemanen, penimbang: { tonase, upah: tonase ? Math.round(jml / tonase) : 0, jumlah: jml, tambahan, total: jml + sum(tambahan, 'Jumlah') }, totalPemanen: sum(pemanen, 'total') };
+}
+function upahBlok(judul, label, nama, kepala, baris, total, min) {
+  const kosong = Math.max(0, (min || 3) - baris.length);
+  const tr = baris.map(r => '<tr>' + r.map((c, i) => '<td class="' + (i === 0 ? '' : (i === 3 ? 'r' : 'c')) + '">' + esc(c) + '</td>').join('') + '</tr>').join('')
+    + new Array(kosong + 1).join('<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>');
+  return '<div class="up-t">' + esc(judul) + '</div><div class="up-p">' + esc(label) + ' : <span class="up-y">' + esc(nama || '      ') + '</span></div>'
+    + '<table class="up-tb"><tr>' + kepala.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr>' + tr + '<tr class="tot"><td colspan="3">TOTAL</td><td class="y">' + fmtN(total) + '</td></tr></table>';
+}
+function upahIsi() {
+  const r = rekapUpah(), pn = ($('#upPenimbang').value || '').trim().toUpperCase(), blok = [];
+  r.pemanen.forEach(g => blok.push(upahBlok('UPAH PANEN HAMPARAN D', 'PEMANEN', g.nama.toUpperCase(), ['NAMA PETANI', 'UPAH', 'TONASE', 'JUMLAH'], g.baris.map(b => [b.petani, b.upah ? fmtN(b.upah) : '', fmtKg(b.tonase), fmtN(b.jumlah)]), g.total)));
+  const t = r.penimbang;
+  if (t.jumlah || t.tambahan.length) blok.push(upahBlok('UPAH PENIMBANG HAMPARAN D', 'PENIMBANG', pn, ['KETERANGAN', 'TONASE', 'UPAH', 'JUMLAH'],
+    (t.jumlah ? [['Timbangan', fmtKg(t.tonase) + ' KG', fmtN(t.upah), fmtN(t.jumlah)]] : []).concat(t.tambahan.map(x => [x.Keterangan || 'Tambahan', '', '', fmtN(x.Jumlah)])), t.total, 3));
+  if (!blok.length) return '';
+  let h = '<style>' + UPAH_CSS + '</style><table class="up-grid"><tbody>';
+  for (let i = 0; i < blok.length; i += 2) h += '<tr><td class="k0">' + blok[i] + '</td><td class="k1">' + (blok[i + 1] || '') + '</td></tr>';
+  return h + '</tbody></table>';
+}
+function renderUpah() {
+  if (!$('#upDari').value) {
+    const bs = S.data.upah.map(x => String(x.Tanggal)).sort(), ref = bs.length ? bs[bs.length - 1] : hari();
+    $('#upDari').value = ref.slice(0, 7) + '-01'; $('#upSampai').value = ref.slice(0, 7) + '-' + String(new Date(+ref.slice(0, 4), +ref.slice(5, 7), 0).getDate()).padStart(2, '0');
+    try { $('#upPenimbang').value = localStorage.getItem('upahPenimbang') || ''; } catch (e) { /* abaikan */ }
+  }
+  const r = rekapUpah(), edit = can('upah.save');
+  $('#upKpi').innerHTML = kpi('bi-people', 'Pemanen', String(r.pemanen.length), 'pada rentang tanggal', 'green') + kpi('bi-person-workspace', 'Upah pemanen', rp(r.totalPemanen), '', 'gold') + kpi('bi-speedometer', 'Upah penimbang', rp(r.penimbang.total), fmtKg(r.penimbang.tonase) + ' kg ditimbang', '') + kpi('bi-cash-stack', 'Total upah', rp(r.totalPemanen + r.penimbang.total), '', 'green');
+  const h = upahIsi();
+  $('#upPreview').innerHTML = h ? '<div style="overflow-x:auto;background:#fff;color:#000;padding:12px;border-radius:10px"><div style="min-width:640px">' + h + '</div></div>' : '<div class="empty"><i class="bi bi-inbox"></i>Belum ada upah pada rentang tanggal ini. Klik "Tambah Upah Pemanen".</div>';
+  const pil = $('#upPemanen').value, nama = Array.from(new Set(S.data.upah.filter(x => x.Jenis === 'Pemanen').map(x => String(x.Pemanen)))).sort((a, b) => a.localeCompare(b, 'id'));
+  isiSelect($('#upPemanen'), [{ v: '', l: 'Semua pemanen' }, { v: '__tbh', l: 'Tambahan penimbang' }].concat(nama.map(n => ({ v: n, l: n }))), pil);
+  const pf = $('#upPemanen').value;
+  const L = upahTersaring().filter(x => !pf || (pf === '__tbh' ? x.Jenis === 'Tambahan' : x.Pemanen === pf)).sort((a, b) => String(b.Tanggal).localeCompare(String(a.Tanggal)) || String(b.No_Upah).localeCompare(String(a.No_Upah)));
+  $('#upRiwayat').innerHTML = tabel([{ h: 'Tanggal / no.' }, { h: 'Pemanen / keterangan' }, { h: 'Petani' }, { h: 'Tonase (kg)', c: 'r' }, { h: 'Upah/kg', c: 'r' }, { h: 'Jumlah (Rp)', c: 'r' }, { h: 'Aksi', c: 'r', k: 'acts nolabel' }], L.map(x => ({
+    cls: x._pending ? 'pending' : '',
+    cells: ['<b>' + tglIndo(x.Tanggal) + '</b><div class="sub">' + esc(x.No_Upah) + '</div>', x.Jenis === 'Pemanen' ? '<b>' + esc(x.Pemanen) + '</b>' : '<b>Penimbang</b><div class="sub">' + esc(x.Keterangan) + '</div>', esc(x.Nama_Petani || '–'),
+      x.Jenis === 'Pemanen' ? fmtKg(x.Tonase) : '–', num(x.Upah) ? fmtN(x.Upah) : '–', '<b>' + fmtN(x.Jumlah) + '</b>',
+      edit && !x._pending ? '<button class="btn-x btn-out btn-sm btn-ic" data-act="editUpah" data-id="' + esc(x.ID) + '" aria-label="Ubah"><i class="bi bi-pencil"></i></button> <button class="btn-x btn-out btn-sm btn-ic" data-act="hapusUpah" data-id="' + esc(x.ID) + '" aria-label="Hapus"><i class="bi bi-trash text-out"></i></button>' : '<span class="muted">–</span>']
+  })), { kosong: 'Belum ada catatan upah pada rentang ini.' });
+}
+function hitungUpah() { const t = num($('#fupTonase').value), u = num($('#fupUpah').value); if (t > 0 && u > 0) $('#fupJumlah').value = Math.round(t * u); }
+function upahIsiOtomatis() {
+  if (S.upahJenis !== 'Pemanen' || !S.upahAuto) return;
+  const nm = $('#fupPetani').value.trim().toLowerCase(), tgl = $('#fupTanggal').value, h = $('#fupHint');
+  const pt = S.data.petani.find(p => String(p.Nama).trim().toLowerCase() === nm);
+  if (!pt) { h.textContent = ''; return; }
+  const ton = S.data.panen.filter(r => !r._pending && r.ID_Petani === pt.ID_Petani && String(r.Tanggal) === tgl).reduce((a, r) => a + num(r.Netto), 0);
+  if (ton) $('#fupTonase').value = ton;
+  if (pt.Ongkos_Jenis === 'perkg' && num(pt.Ongkos_Nilai) > 0) $('#fupUpah').value = num(pt.Ongkos_Nilai);
+  h.textContent = ton ? 'Tonase diisi otomatis dari panen tanggal ini (' + fmtKg(ton) + ' kg). Boleh diubah.' : 'Tidak ada panen petani ini pada tanggal tersebut. Isi tonase manual.';
+  hitungUpah();
+}
+function bukaFormUpah(jenis, id) {
+  if (!can('upah.save')) return toast('Anda tidak memiliki akses mencatat upah.', 'warning');
+  const x = id ? S.data.upah.find(r => r.ID === id) : null;
+  S.editUpahId = id || null; S.upahJenis = x ? x.Jenis : jenis; S.upahAuto = !x;
+  $('#mdUpahTitle').textContent = (x ? 'Ubah ' : 'Catat ') + (S.upahJenis === 'Tambahan' ? 'Tambahan Upah Penimbang' : 'Upah Pemanen');
+  $$('.fup-pem').forEach(el => { el.hidden = S.upahJenis === 'Tambahan'; }); $$('.fup-tbh').forEach(el => { el.hidden = S.upahJenis !== 'Tambahan'; });
+  $('#dlPemanen').innerHTML = Array.from(new Set(S.data.upah.filter(r => r.Jenis === 'Pemanen').map(r => String(r.Pemanen)))).sort((a, b) => a.localeCompare(b, 'id')).map(n => '<option value="' + esc(n) + '">').join('');
+  $('#dlUpPetani').innerHTML = S.data.petani.map(p => '<option value="' + esc(p.Nama) + '">').join('');
+  $('#fupTanggal').value = x ? x.Tanggal : hari(); $('#fupPemanen').value = x ? x.Pemanen : ''; $('#fupPetani').value = x ? x.Nama_Petani : '';
+  $('#fupTonase').value = x && x.Jenis === 'Pemanen' ? x.Tonase : ''; $('#fupUpah').value = x && num(x.Upah) ? x.Upah : ''; $('#fupKet').value = x ? x.Keterangan : (S.upahJenis === 'Tambahan' ? 'Tambahan' : '');
+  $('#fupJumlah').value = x ? x.Jumlah : ''; $('#fupHint').textContent = '';
+  modal('mdUpah').show();
+}
+async function simpanUpah(ev) {
+  ev.preventDefault();
+  const jenis = S.upahJenis, jumlah = Math.round(num($('#fupJumlah').value)), pem = $('#fupPemanen').value.trim(), pet = $('#fupPetani').value.trim(), ket = $('#fupKet').value.trim();
+  if (!$('#fupTanggal').value) return toast('Isi tanggal.', 'warning');
+  if (jenis === 'Pemanen' && (!pem || !pet)) return toast('Isi nama pemanen dan nama petani.', 'warning');
+  if (jenis === 'Pemanen' && !(num($('#fupTonase').value) > 0)) return toast('Isi tonase (kg).', 'warning');
+  if (jenis === 'Tambahan' && !ket) return toast('Isi keterangan.', 'warning');
+  const upah = Math.round(num($('#fupUpah').value)), ton = num($('#fupTonase').value);
+  if (!(jumlah > 0) && !(upah > 0 && ton > 0)) return toast('Jumlah upah harus lebih dari 0.', 'warning');
+  const payload = { ID: S.editUpahId || '', Tanggal: $('#fupTanggal').value, Jenis: jenis, Pemanen: jenis === 'Pemanen' ? pem : '', Nama_Petani: jenis === 'Pemanen' ? pet : '', Tonase: jenis === 'Pemanen' ? ton : 0, Upah: jenis === 'Pemanen' ? upah : 0, Jumlah: jumlah || Math.round(ton * upah), Keterangan: ket };
+  const lama = S.editUpahId ? S.data.upah.find(x => x.ID === S.editUpahId) : null;
+  const sem = Object.assign({}, lama || {}, payload, { ID: lama ? lama.ID : tmpId(), No_Upah: lama ? lama.No_Upah : '(otomatis)', Dicatat_Oleh: lama ? lama.Dicatat_Oleh : S.user.nama, _pending: true });
+  const salinan = lama ? Object.assign({}, lama) : null;
+  if (lama) S.data.upah[S.data.upah.indexOf(lama)] = sem; else S.data.upah.push(sem);
+  modal('mdUpah').hide(); renderHalaman(S.page); toast('Menyimpan upah…', 'info');
+  try {
+    const rec = await api('upah.save', payload);
+    S.data.upah[S.data.upah.findIndex(x => x.ID === sem.ID)] = rec; renderHalaman(S.page); toast('Tersimpan: ' + rec.No_Upah, 'success');
+  } catch (e) {
+    const i = S.data.upah.findIndex(x => x.ID === sem.ID);
+    if (salinan) S.data.upah[i] = salinan; else S.data.upah.splice(i, 1);
+    renderHalaman(S.page); toast('Gagal menyimpan: ' + e.message, 'danger');
+  }
+}
+function hapusUpah(id) {
+  const x = S.data.upah.find(r => r.ID === id); if (!x || x._pending) return;
+  konfirmasi('Hapus catatan upah?', '<b>' + esc(x.No_Upah) + '</b> (' + esc(x.Pemanen || x.Keterangan) + (x.Nama_Petani ? ' · ' + esc(x.Nama_Petani) : '') + ' · ' + rp(x.Jumlah) + ') akan dihapus.', async () => {
+    const i = S.data.upah.indexOf(x); S.data.upah.splice(i, 1); renderHalaman(S.page);
+    try { await api('upah.delete', { ID: id }); toast('Catatan dihapus.', 'success'); }
+    catch (e) { S.data.upah.splice(i, 0, x); renderHalaman(S.page); toast('Gagal menghapus: ' + e.message, 'danger'); }
+  }, 'Hapus');
+}
+function upahDoc(penuh) {
+  const h = upahIsi(); if (!h) return '';
+  return penuh ? '<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:215mm 330mm;margin:10mm}body{margin:0}</style></head><body>' + h + '</body></html>' : '<div style="padding:7mm 8mm;background:#fff">' + h + '</div>';
+}
+function cetakUpah() { const h = upahDoc(false); if (!h) return toast('Tidak ada data upah untuk dicetak.', 'warning'); cetakHtml(h); }
+function exportUpahPdf(btn) { const h = upahDoc(true); if (!h) return toast('Tidak ada data upah untuk dibuat PDF.', 'warning'); unduhPdfHtml(h, 'Upah Panen Hamparan D', btn); }
+function exportUpahExcel() {
+  const r = rekapUpah(), L = upahTersaring().slice().sort((a, b) => String(a.Tanggal).localeCompare(String(b.Tanggal)));
+  const rk = [['Pemanen', 'Nama petani', 'Upah/kg', 'Tonase (kg)', 'Jumlah']];
+  r.pemanen.forEach(g => { g.baris.forEach(b => rk.push([g.nama, b.petani, b.upah, b.tonase, b.jumlah])); rk.push([g.nama + ' — TOTAL', '', '', '', g.total]); });
+  rk.push(['Penimbang' + (($('#upPenimbang').value || '').trim() ? ' ' + $('#upPenimbang').value.trim() : ''), 'Timbangan', r.penimbang.upah, r.penimbang.tonase, r.penimbang.jumlah]);
+  r.penimbang.tambahan.forEach(x => rk.push(['Penimbang', x.Keterangan || 'Tambahan', '', '', num(x.Jumlah)]));
+  rk.push(['TOTAL UPAH', '', '', '', r.totalPemanen + r.penimbang.total]);
+  unduhExcel('Upah Panen Hamparan D', [{ nama: 'Rekap', aoa: rk }, { nama: 'Detail', aoa: [['No.', 'Tanggal', 'Jenis', 'Pemanen', 'Petani', 'Tonase', 'Upah/kg', 'Jumlah', 'Keterangan']].concat(L.map(x => [x.No_Upah, x.Tanggal, x.Jenis, x.Pemanen, x.Nama_Petani, x.Tonase, x.Upah, x.Jumlah, x.Keterangan])) }]);
+}
+
+/* ============================================================
    LAPORAN
    ============================================================ */
 function dataLaporan() {
@@ -1693,7 +1833,7 @@ async function simpanPin(ev) {
    ============================================================ */
 const AKSI = {
   slip: id => { const r = S.data.panen.find(x => x.ID === id); if (r) bukaPreview([r]); },
-  editPanen, hapusPanen, editKas: id => bukaFormKas(null, id), hapusKas, editTab: id => bukaFormTab(null, id), hapusTab, editPenabung, hapusPenabung, editPin: id => bukaFormPinjam(null, id), hapusPin, detailPin: nm => { $('#pinPeminjam').value = nm; renderPinjaman(); $('#pinRiwayat').scrollIntoView({ behavior: 'smooth' }); }, detailTab: id => { $('#tabPetani').value = id; renderTabungan(); $('#tabRiwayat').scrollIntoView({ behavior: 'smooth' }); }, bukti: lihatBukti,
+  editUpah: id => bukaFormUpah('', id), hapusUpah, editPanen, hapusPanen, editKas: id => bukaFormKas(null, id), hapusKas, editTab: id => bukaFormTab(null, id), hapusTab, editPenabung, hapusPenabung, editPin: id => bukaFormPinjam(null, id), hapusPin, detailPin: nm => { $('#pinPeminjam').value = nm; renderPinjaman(); $('#pinRiwayat').scrollIntoView({ behavior: 'smooth' }); }, detailTab: id => { $('#tabPetani').value = id; renderTabungan(); $('#tabRiwayat').scrollIntoView({ behavior: 'smooth' }); }, bukti: lihatBukti,
   editPetani: bukaFormPetani, togglePetani, hapusPetani, editUser: bukaFormUser, resetPin: bukaFormPin, hapusHarga,
   isiHarga: id => { const h = S.data.harga.find(x => x.ID === id); if (h) { $('#fhTanggal').value = h.Tanggal; $('#fhHarga').value = h.Harga; $('#fhCatatan').value = h.Catatan || ''; $('#fhHarga').focus(); } },
   hapusManual: i => { FP.manual.splice(+i, 1); renderManual(); hitungForm(); }
@@ -1766,6 +1906,14 @@ function pasangEvent() {
   $('#btnPinBaru').onclick = () => bukaFormPinjam('Pinjam'); $('#btnPinBayar').onclick = () => bukaFormPinjam('Bayar');
   $('#formPinjam').addEventListener('submit', simpanPinjam); $('#fpiNama').addEventListener('input', hintPin); $('#fpiJumlah').addEventListener('input', hintPin);
   $('#pinSearch').addEventListener('input', debounce(renderPinjaman, 200)); $('#pinPeminjam').onchange = renderPinjaman; $('#pinJenis').onchange = renderPinjaman;
+  // Upah panen
+  $('#btnUpahBaru').onclick = () => bukaFormUpah('Pemanen'); $('#btnUpahTbh').onclick = () => bukaFormUpah('Tambahan');
+  $('#formUpah').addEventListener('submit', simpanUpah);
+  $('#fupTonase').addEventListener('input', () => { S.upahAuto = false; hitungUpah(); }); $('#fupUpah').addEventListener('input', () => { S.upahAuto = false; hitungUpah(); });
+  $('#fupPetani').addEventListener('change', upahIsiOtomatis); $('#fupTanggal').addEventListener('change', upahIsiOtomatis);
+  $('#upDari').onchange = renderUpah; $('#upSampai').onchange = renderUpah; $('#upPemanen').onchange = renderUpah;
+  $('#upPenimbang').addEventListener('input', () => { try { localStorage.setItem('upahPenimbang', $('#upPenimbang').value); } catch (e) { /* abaikan */ } renderUpah(); });
+  $('#btnUpahCetak').onclick = cetakUpah; $('#btnUpahPdf').onclick = e => exportUpahPdf(e.currentTarget); $('#btnUpahExcel').onclick = exportUpahExcel;
   $('#btnPinExcel').onclick = exportPinjamanExcel; $('#btnPinPdf').onclick = e => exportPinjamanPdf(e.currentTarget);
   // Petani
   $('#fptOngJ').onchange = hintOngkos;
