@@ -769,8 +769,26 @@ const SLIP_CSS = '.sheet{width:100%;height:311mm;border-collapse:collapse;table-
   + '.s-box th,.s-box td{border:1px solid #000}.s-box th{text-align:center;font-weight:bold}'
   + '.slip .hl{background:#FFF176;font-weight:bold}.slip .r{text-align:right}.slip .c{text-align:center}'
   + '.slip .tot td{font-weight:bold}.s-tgl{text-align:right;font-size:8pt;margin:6px 0 2px}'
-  + '.s-ttd td{text-align:center;font-size:8pt}.s-ttd .gap td{height:38px;vertical-align:middle}.s-sig{max-height:34px;max-width:92%;display:block;margin:0 auto}.s-kop img{float:left;height:11mm;margin-right:2mm}.s-kop:after{content:"";display:block;clear:both}';
+  + '.slip .gb{font-size:14pt;font-weight:800;padding-top:2px;padding-bottom:2px}.s-terb{font-size:8pt;margin-top:3px;text-transform:capitalize;line-height:1.3}.s-terb b{text-transform:none}.s-ttd td{text-align:center;font-size:8pt}.s-ttd .gap td{height:38px;vertical-align:middle}.s-sig{max-height:34px;max-width:92%;display:block;margin:0 auto}.s-kop img{float:left;height:11mm;margin-right:2mm}.s-kop:after{content:"";display:block;clear:both}';
 
+/** Angka -> terbilang Bahasa Indonesia (mis. 2301000 -> "dua juta tiga ratus satu ribu rupiah"). */
+function terbilang(n) {
+  n = Math.floor(Math.abs(Number(n) || 0));
+  const sat = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+  const t = x => {
+    if (x < 12) return sat[x];
+    if (x < 20) return sat[x - 10] + ' belas';
+    if (x < 100) return sat[Math.floor(x / 10)] + ' puluh' + (x % 10 ? ' ' + sat[x % 10] : '');
+    if (x < 200) return 'seratus' + (x - 100 ? ' ' + t(x - 100) : '');
+    if (x < 1000) return sat[Math.floor(x / 100)] + ' ratus' + (x % 100 ? ' ' + t(x % 100) : '');
+    if (x < 2000) return 'seribu' + (x - 1000 ? ' ' + t(x - 1000) : '');
+    if (x < 1e6) return t(Math.floor(x / 1000)) + ' ribu' + (x % 1000 ? ' ' + t(x % 1000) : '');
+    if (x < 1e9) return t(Math.floor(x / 1e6)) + ' juta' + (x % 1e6 ? ' ' + t(x % 1e6) : '');
+    if (x < 1e12) return t(Math.floor(x / 1e9)) + ' miliar' + (x % 1e9 ? ' ' + t(x % 1e9) : '');
+    return String(x);
+  };
+  return n === 0 ? 'nol rupiah' : t(n) + ' rupiah';
+}
 function slipHtml(r) {
   const g = S.data.pengaturan || {};
   const K = !!r._kosong;   // formulir kosong: angka yang belum diketahui dibiarkan kosong untuk ditulis tangan
@@ -793,7 +811,8 @@ function slipHtml(r) {
   h += '<tr><td class="c">5</td><td colspan="3">Lain – Lain</td></tr>';
   lain.forEach(l => { h += '<tr><td></td><td>· ' + esc(l[0]) + '</td><td class="c">' + esc(l[1]) + '</td><td class="r">' + n(l[2]) + '</td></tr>'; });
   h += '<tr class="tot"><td colspan="3">JUMLAH POTONGAN</td><td class="r">' + n(r.Total_Potongan) + '</td></tr></table>';
-  h += '<table style="margin-top:5px"><tr><td style="width:40%"><b>Gaji Bersih :</b></td><td class="hl" style="width:14%">Rp</td><td class="hl r" style="width:46%">' + n(r.Gaji_Bersih) + '</td></tr></table>';
+  h += '<table style="margin-top:5px"><tr><td style="width:30%"><b>Gaji Bersih :</b></td><td class="hl gb" style="width:14%">Rp</td><td class="hl gb r" style="width:56%">' + n(r.Gaji_Bersih) + '</td></tr></table>';
+  h += '<div class="s-terb"><b>Terbilang :</b> ' + (K ? '..............................................................' : '<i>' + esc(terbilang(r.Gaji_Bersih)) + '</i>') + '</div>';
   h += '<div class="s-tgl">' + esc(g.tempat_cetak || '') + ', ' + (K ? '........................' : tglIndo(r.Tanggal)) + '</div>';
   h += '<table class="s-ttd"><tr><td>Ketua Kelompok Tani</td><td>Bendahara</td><td>Sekretaris</td></tr><tr class="gap">' + ['ketua', 'bendahara', 'sekretaris'].map(k => '<td>' + (g['ttd_' + k] ? '<img class="s-sig" src="' + esc(g['ttd_' + k]) + '" alt="">' : '&nbsp;') + '</td>').join('') + '</tr>'
     + '<tr><td>( ' + esc(g.ketua_nama || '') + ' )</td><td>( ' + esc(g.bendahara_nama || '') + ' )</td><td>( ' + esc(g.sekretaris_nama || '') + ' )</td></tr></table>';
