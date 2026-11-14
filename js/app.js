@@ -1321,9 +1321,9 @@ function upahIsiOtomatis() {
   const ton = pn.reduce((a, r) => a + num(r.Netto), 0), ongTot = pn.reduce((a, r) => a + num(r.Ongkos_Panen), 0), rb = pn.find(r => num(r.Ongkos_Rate) > 0);
   if (ton) $('#fupTonase').value = ton;
   // Upah per kg mengikuti ongkos panen yang tertulis di slip BPHP (panen tanggal itu); cadangan: tarif di data petani
-  let ket = '';
+  let ket = ''; $('#fupUpah').placeholder = '';
   if (rb) { $('#fupUpah').value = num(rb.Ongkos_Rate); ket = ' Upah Rp' + fmtN(rb.Ongkos_Rate) + '/kg sesuai slip BPHP.'; }
-  else if (ongTot > 0) { $('#fupUpah').value = ''; $('#fupJumlah').value = Math.round(ongTot); ket = ' Ongkos panen di slip berupa nominal tetap ' + rp(ongTot) + ' (tanpa upah per kg).'; }
+  else if (ongTot > 0) { $('#fupUpah').value = ''; $('#fupUpah').placeholder = 'Tetap (tanpa per kg)'; $('#fupJumlah').value = Math.round(ongTot); ket = ' Ongkos panen di slip berupa nominal tetap ' + rp(ongTot) + ' (tanpa upah per kg).'; }
   else if (pn.length) { $('#fupUpah').value = ''; ket = ' Slip tanggal ini tidak ada ongkos panen; isi upah manual.'; }
   else if (pt.Ongkos_Jenis === 'perkg' && num(pt.Ongkos_Nilai) > 0) $('#fupUpah').value = num(pt.Ongkos_Nilai);
   h.textContent = ton ? 'Tonase diisi otomatis dari panen tanggal ini (' + fmtKg(ton) + ' kg).' + ket + ' Boleh diubah.' : 'Tidak ada panen petani ini pada tanggal tersebut. Isi tonase manual.';
