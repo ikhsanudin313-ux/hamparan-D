@@ -800,9 +800,9 @@ function slipHtml(r) {
   let h = '<div class="slip">';
   h += '<div class="s-kop">' + (g.logo ? '<img src="' + esc(g.logo) + '" alt="">' : '') + '<div>' + esc(g.judul_slip || 'BUKTI PEMBAYARAN HASIL PANEN ( BPHP ) TBS') + '</div><div>' + esc(g.nama_kelompok || '') + '</div><div class="a">' + esc(g.alamat || '') + '</div></div>';
   h += '<div class="s-no">No. Bukti : ' + (K ? '....................' : esc(r.No_Bukti)) + '</div>';
-  h += '<table><tr><td style="width:19%">Nama</td><td style="width:35%"><span class="hl hl-t big">: ' + esc(String(r.Nama).toUpperCase()) + '</span>' + (K && r.Kapling ? ' <span style="font-weight:normal">(' + esc(r.Kapling) + ')</span>' : '') + '</td><td style="width:26%">Berat Bruto</td><td class="r" style="width:20%">' + (r.Bruto === '' || r.Bruto === undefined ? ':&nbsp;&nbsp;KG' : ': ' + kgTxt(r.Bruto)) + '</td></tr>'
+  h += '<table><tr><td style="width:19%">Nama</td><td style="width:35%"><span class="hl hl-t">: ' + esc(String(r.Nama).toUpperCase()) + '</span>' + (K && r.Kapling ? ' <span style="font-weight:normal">(' + esc(r.Kapling) + ')</span>' : '') + '</td><td style="width:26%">Berat Bruto</td><td class="r" style="width:20%">' + (r.Bruto === '' || r.Bruto === undefined ? ':&nbsp;&nbsp;KG' : ': ' + kgTxt(r.Bruto)) + '</td></tr>'
     + '<tr><td>Gaji Bulan</td><td>: ' + esc(r.Gaji_Bulan) + '</td><td>Sortasi</td><td class="r">' + (r.Sortasi === '' || r.Sortasi === undefined ? ':&nbsp;&nbsp;KG' : ': ' + kgTxt(r.Sortasi)) + '</td></tr>'
-    + '<tr><td>Harga TBS</td><td class="big">: ' + n(r.Harga) + '</td><td>Berat Netto</td><td class="r big">: ' + n(r.Netto) + ' KG</td></tr></table>';
+    + '<tr><td>Harga TBS</td><td class="big">: ' + n(r.Harga) + '</td><td>Berat Netto</td><td class="r"><b>: ' + n(r.Netto) + '</b> KG</td></tr></table>';
   h += '<div class="s-h">A.&nbsp; Rincian Perhitungan</div>';
   h += '<table class="s-box"><tr><th style="width:9%">No</th><th>Harga Tbs</th><th>NETTO</th><th>Jumlah</th></tr><tr><td class="c">&nbsp;</td><td class="c big">' + n(r.Harga) + '</td><td class="c big">' + n(r.Netto) + '</td><td class="r big">' + n(r.Kotor) + '</td></tr></table>';
   h += '<div class="s-h">B.&nbsp; Rincian Potongan</div>';
