@@ -1256,7 +1256,12 @@ function dataLaporan() {
   const perPetani = Object.keys(m).map(k => m[k]).sort((a, b) => String(a.kapling).localeCompare(String(b.kapling), 'id', { numeric: true }));
   const bulan = Array.from(new Set(P.map(r => bln(r.Tanggal)).concat(K.map(r => bln(r.Tanggal))))).sort();
   const perBulan = bulan.map(b => { const p = P.filter(r => bln(r.Tanggal) === b), k = K.filter(r => bln(r.Tanggal) === b); return { bulan: b, netto: sum(p, 'Netto'), kotor: sum(p, 'Kotor'), pot: sum(p, 'Total_Potongan'), bersih: sum(p, 'Gaji_Bersih'), masuk: sum(k.filter(x => x.Jenis === 'Pemasukan'), 'Jumlah'), keluar: sum(k.filter(x => x.Jenis === 'Pengeluaran'), 'Jumlah') }; });
-  return { P, K, perPetani, perBulan, dari, sampai };
+  const tglList = Array.from(new Set(P.map(r => String(r.Tanggal)))).sort();
+  const perTanggal = tglList.map(t => {
+    const p = P.filter(r => String(r.Tanggal) === t), hg = Array.from(new Set(p.map(r => num(r.Harga))));
+    return { tgl: t, n: p.length, bruto: sum(p, 'Bruto'), sortasi: sum(p, 'Sortasi'), netto: sum(p, 'Netto'), harga: hg.length === 1 ? hg[0] : 0, kotor: sum(p, 'Kotor'), pot: sum(p, 'Total_Potongan'), bersih: sum(p, 'Gaji_Bersih') };
+  });
+  return { P, K, perPetani, perBulan, perTanggal, dari, sampai };
 }
 function renderLaporan() {
   if (!$('#lpDari').value) {
@@ -1271,6 +1276,11 @@ function renderLaporan() {
   $('#lpBulan').innerHTML = tabel([{ h: 'Bulan' }, { h: 'Netto (kg)', c: 'r' }, { h: 'Hasil kotor', c: 'r' }, { h: 'Potongan', c: 'r' }, { h: 'Gaji bersih', c: 'r' }, { h: 'Kas masuk', c: 'r' }, { h: 'Kas keluar', c: 'r' }],
     d.perBulan.map(o => ['<b>' + labelBulanPenuh(o.bulan) + '</b>', fmtKg(o.netto), rp(o.kotor), rp(o.pot), rp(o.bersih), '<span class="text-in">' + rp(o.masuk) + '</span>', '<span class="text-out">' + rp(o.keluar) + '</span>']),
     { kosong: 'Tidak ada data pada rentang ini.' });
+  const tt = d.perTanggal.reduce((a, o) => ({ n: a.n + o.n, bruto: a.bruto + o.bruto, sortasi: a.sortasi + o.sortasi, netto: a.netto + o.netto, kotor: a.kotor + o.kotor, pot: a.pot + o.pot, bersih: a.bersih + o.bersih }), { n: 0, bruto: 0, sortasi: 0, netto: 0, kotor: 0, pot: 0, bersih: 0 });
+  $('#lpTanggal').innerHTML = tabel([{ h: 'Tanggal panen' }, { h: 'Petani', c: 'r' }, { h: 'Bruto (kg)', c: 'r' }, { h: 'Sortasi (kg)', c: 'r' }, { h: 'Netto (kg)', c: 'r' }, { h: 'Harga/kg', c: 'r' }, { h: 'Hasil kotor', c: 'r' }, { h: 'Potongan', c: 'r' }, { h: 'Gaji bersih', c: 'r' }],
+    d.perTanggal.map(o => ['<b>' + tglIndo(o.tgl) + '</b>', o.n, fmtKg(o.bruto), fmtKg(o.sortasi), fmtKg(o.netto), o.harga ? rp(o.harga) : 'beragam', rp(o.kotor), rp(o.pot), '<b>' + rp(o.bersih) + '</b>']),
+    { kosong: 'Tidak ada data panen pada rentang ini.', foot: d.perTanggal.length ? ['TOTAL', tt.n, fmtKg(tt.bruto), fmtKg(tt.sortasi), fmtKg(tt.netto), '', rp(tt.kotor), rp(tt.pot), rp(tt.bersih)] : null });
+  gambar('chLpTanggal', { type: 'bar', data: { labels: d.perTanggal.map(o => tglIndo(o.tgl).replace(/ \d{4}$/, '')), datasets: [{ label: 'Netto (kg)', data: d.perTanggal.map(o => o.netto), backgroundColor: '#2E7D32', borderRadius: 6 }] }, options: Object.assign(opsiSumbu(false), { plugins: { legend: { display: false } } }) });
   gambar('chLpKapling', { type: 'bar', data: { labels: d.perPetani.map(o => o.kapling || o.nama), datasets: [{ label: 'Netto (kg)', data: d.perPetani.map(o => o.netto), backgroundColor: '#2E7D32', borderRadius: 6 }] }, options: Object.assign(opsiSumbu(false), { plugins: { legend: { display: false } } }) });
   gambar('chLpKas', { type: 'bar', data: { labels: d.perBulan.map(o => labelBulan(o.bulan)), datasets: [{ label: 'Masuk', data: d.perBulan.map(o => o.masuk), backgroundColor: '#15803D', borderRadius: 6 }, { label: 'Keluar', data: d.perBulan.map(o => o.keluar), backgroundColor: '#DC2626', borderRadius: 6 }] }, options: opsiSumbu(false) });
 }
@@ -1300,6 +1310,7 @@ function exportLaporanExcel() {
   const d = dataLaporan();
   unduhExcel('Laporan Hamparan D ' + (d.dari || '') + ' s.d. ' + (d.sampai || ''), [
     { nama: 'Rekap Petani', aoa: [['Kapling', 'Petani', 'Jumlah panen', 'Netto (kg)', 'Hasil kotor', 'Potongan', 'Gaji bersih']].concat(d.perPetani.map(o => [o.kapling, o.nama, o.n, o.netto, o.kotor, o.pot, o.bersih])) },
+    { nama: 'Rekap Tanggal Panen', aoa: [['Tanggal', 'Jumlah petani', 'Bruto (kg)', 'Sortasi (kg)', 'Netto (kg)', 'Harga/kg', 'Hasil kotor', 'Potongan', 'Gaji bersih']].concat(d.perTanggal.map(o => [o.tgl, o.n, o.bruto, o.sortasi, o.netto, o.harga || 'beragam', o.kotor, o.pot, o.bersih])) },
     { nama: 'Rekap Bulanan', aoa: [['Bulan', 'Netto (kg)', 'Hasil kotor', 'Potongan', 'Gaji bersih', 'Kas masuk', 'Kas keluar']].concat(d.perBulan.map(o => [labelBulanPenuh(o.bulan), o.netto, o.kotor, o.pot, o.bersih, o.masuk, o.keluar])) },
     { nama: 'Detail Panen', aoa: [['No. bukti', 'Tanggal', 'Kapling', 'Petani', 'Bruto', 'Sortasi', 'Netto', 'Harga', 'Hasil kotor', 'Transport', 'Kelompok', 'Penimbang', 'Koperasi', 'Tabungan', 'Masjid', 'Ongkos panen', 'Manual', 'Total potongan', 'Gaji bersih']].concat(d.P.map(r => [r.No_Bukti, r.Tanggal, r.Kapling, r.Nama, r.Bruto, r.Sortasi, r.Netto, r.Harga, r.Kotor, r.Transport, r.Kelompok, r.Penimbang, r.Koperasi, r.Tabungan, r.Masjid, r.Ongkos_Panen, r.Potongan_Manual, r.Total_Potongan, r.Gaji_Bersih])) },
     { nama: 'Kas', aoa: [['No. kas', 'Tanggal', 'Jenis', 'Kategori', 'Keterangan', 'Pihak', 'Jumlah']].concat(d.K.map(k => [k.No_Kas, k.Tanggal, k.Jenis, k.Kategori, k.Keterangan, k.Pihak, k.Jumlah])) }
@@ -1311,6 +1322,13 @@ function exportLaporanPdf(btn) {
     ['Kapling', 'Petani', 'Panen', 'Netto (kg)', 'Hasil kotor', 'Potongan', 'Gaji bersih'],
     d.perPetani.map(o => [o.kapling, o.nama, o.n, fmtKg(o.netto), fmtN(o.kotor), fmtN(o.pot), fmtN(o.bersih)]).concat([['', 'TOTAL', d.perPetani.reduce((a, o) => a + o.n, 0), fmtKg(sum(d.perPetani, 'netto')), fmtN(sum(d.perPetani, 'kotor')), fmtN(sum(d.perPetani, 'pot')), fmtN(sum(d.perPetani, 'bersih'))]]), [2, 3, 4, 5, 6]);
   unduhPdfHtml(html, 'Laporan Panen Hamparan D', btn);
+}
+function exportTanggalPdf(btn) {
+  const d = dataLaporan(), T = d.perTanggal;
+  const html = tabelDoc('Laporan Rekap Panen per Tanggal', 'Periode ' + (d.dari ? labelBulanPenuh(d.dari) : '-') + ' s.d. ' + (d.sampai ? labelBulanPenuh(d.sampai) : '-'),
+    ['Tanggal', 'Petani', 'Bruto (kg)', 'Sortasi (kg)', 'Netto (kg)', 'Harga/kg', 'Hasil kotor', 'Potongan', 'Gaji bersih'],
+    T.map(o => [tglIndo(o.tgl), o.n, fmtKg(o.bruto), fmtKg(o.sortasi), fmtKg(o.netto), o.harga ? fmtN(o.harga) : 'beragam', fmtN(o.kotor), fmtN(o.pot), fmtN(o.bersih)]).concat([['TOTAL', sum(T, 'n'), fmtKg(sum(T, 'bruto')), fmtKg(sum(T, 'sortasi')), fmtKg(sum(T, 'netto')), '', fmtN(sum(T, 'kotor')), fmtN(sum(T, 'pot')), fmtN(sum(T, 'bersih'))]]), [1, 2, 3, 4, 5, 6, 7, 8]);
+  unduhPdfHtml(html, 'Laporan Panen per Tanggal Hamparan D', btn);
 }
 function exportKasExcel() {
   const l = kasTersaring().slice().reverse();
@@ -1755,6 +1773,7 @@ function pasangEvent() {
   $('#ptSearch').addEventListener('input', debounce(renderPetani, 200)); $('#ptStatus').onchange = renderPetani;
   // Laporan
   $('#lpDari').onchange = renderLaporan; $('#lpSampai').onchange = renderLaporan;
+  $('#btnLpTglPdf').onclick = e => exportTanggalPdf(e.currentTarget);
   $('#btnLpExcel').onclick = exportLaporanExcel; $('#btnLpPdf').onclick = e => exportLaporanPdf(e.currentTarget);
   // Tarif
   $('#ftLogoFile').addEventListener('change', async e => { try { const d = await perkecilLogo(e.target.files[0]); if (d) { S.logoBaru = d; tampilPreviewLogo(); toast('Logo siap. Klik Simpan Tarif & Identitas.', 'info'); } } catch (err) { toast(err.message, 'danger'); } e.target.value = ''; });
