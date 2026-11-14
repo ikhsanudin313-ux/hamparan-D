@@ -758,9 +758,9 @@ async function simpanImpor() {
 /* ============================================================
    SLIP BPHP (cetak, PDF)
    ============================================================ */
-const SLIP_CSS = '.sheet{width:100%;height:318mm;border-collapse:collapse;table-layout:fixed;page-break-after:always}.sheet:last-child{page-break-after:auto}.sheet td.cell{height:50%}'
+const SLIP_CSS = '.sheet{width:100%;height:312mm;border-collapse:collapse;table-layout:fixed;page-break-after:always}.sheet:last-child{page-break-after:auto}.sheet td.cell{height:50%}'
   + '.sheet td.cell:first-child{padding-right:4.5mm}.sheet td.cell:last-child{padding-left:4.5mm}.sheet td.cell{width:50%;vertical-align:top;padding:2.5mm 1.5mm;border:1px dashed #9CA3AF;background:#fff}'
-  + '.slip{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;width:100%;line-height:1.3}'
+  + '.slip{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;width:100%;line-height:1.3;display:flex;flex-direction:column;height:147mm}.slip .s-bawah{margin-top:auto}'
   + '.slip table{width:100%;border-collapse:collapse;table-layout:fixed}'
   + '.slip td,.slip th{padding:1px 3px;font-size:8.5pt;vertical-align:middle;color:#000}'
   + '.s-kop{text-align:center;border-bottom:2px solid #000;padding-bottom:3px;margin-bottom:3px}'
@@ -769,7 +769,7 @@ const SLIP_CSS = '.sheet{width:100%;height:318mm;border-collapse:collapse;table-
   + '.s-box th,.s-box td{border:1px solid #000}.s-box th{text-align:center;font-weight:bold}'
   + '.slip *{-webkit-print-color-adjust:exact;print-color-adjust:exact}.slip .hl{background:#FFF176;font-weight:bold}.slip .r{text-align:right}.slip .c{text-align:center}'
   + '.slip .tot td{font-weight:bold}.s-tgl{text-align:right;font-size:8pt;margin:6px 0 2px}'
-  + '.slip .hl-t{display:inline-block;padding:1px 6px;line-height:1.25}.slip .gb{font-size:12pt;font-weight:800}.s-terb{font-size:8pt;margin-top:3px;text-transform:capitalize;line-height:1.3}.s-terb b{text-transform:none}.s-ttd td{text-align:center;font-size:8pt}.s-ttd .gap td{height:38px;vertical-align:middle}.s-sig{max-height:34px;max-width:92%;display:block;margin:0 auto}.s-kop img{float:left;height:11mm;margin-right:2mm}.s-kop:after{content:"";display:block;clear:both}';
+  + '.slip .big{font-size:10.5pt;font-weight:bold}.slip .hl-t{display:inline-block;padding:1px 6px;line-height:1.25}.slip .gb{font-size:12pt;font-weight:800}.s-terb{font-size:8pt;margin-top:3px;text-transform:capitalize;line-height:1.3}.s-terb b{text-transform:none}.s-ttd td{text-align:center;font-size:8pt}.s-ttd .gap td{height:44px;vertical-align:middle}.s-sig{max-height:40px;max-width:92%;display:block;margin:0 auto}.s-kop img{float:left;height:11mm;margin-right:2mm}.s-kop:after{content:"";display:block;clear:both}';
 
 /** Angka -> terbilang Bahasa Indonesia (mis. 2301000 -> "dua juta tiga ratus satu ribu rupiah"). */
 function terbilang(n) {
@@ -800,11 +800,11 @@ function slipHtml(r) {
   let h = '<div class="slip">';
   h += '<div class="s-kop">' + (g.logo ? '<img src="' + esc(g.logo) + '" alt="">' : '') + '<div>' + esc(g.judul_slip || 'BUKTI PEMBAYARAN HASIL PANEN ( BPHP ) TBS') + '</div><div>' + esc(g.nama_kelompok || '') + '</div><div class="a">' + esc(g.alamat || '') + '</div></div>';
   h += '<div class="s-no">No. Bukti : ' + (K ? '....................' : esc(r.No_Bukti)) + '</div>';
-  h += '<table><tr><td style="width:19%">Nama</td><td style="width:35%"><span class="hl hl-t">: ' + esc(String(r.Nama).toUpperCase()) + '</span>' + (K && r.Kapling ? ' <span style="font-weight:normal">(' + esc(r.Kapling) + ')</span>' : '') + '</td><td style="width:26%">Berat Bruto</td><td class="r" style="width:20%">' + (r.Bruto === '' || r.Bruto === undefined ? ':&nbsp;&nbsp;KG' : ': ' + kgTxt(r.Bruto)) + '</td></tr>'
+  h += '<table><tr><td style="width:19%">Nama</td><td style="width:35%"><span class="hl hl-t big">: ' + esc(String(r.Nama).toUpperCase()) + '</span>' + (K && r.Kapling ? ' <span style="font-weight:normal">(' + esc(r.Kapling) + ')</span>' : '') + '</td><td style="width:26%">Berat Bruto</td><td class="r" style="width:20%">' + (r.Bruto === '' || r.Bruto === undefined ? ':&nbsp;&nbsp;KG' : ': ' + kgTxt(r.Bruto)) + '</td></tr>'
     + '<tr><td>Gaji Bulan</td><td>: ' + esc(r.Gaji_Bulan) + '</td><td>Sortasi</td><td class="r">' + (r.Sortasi === '' || r.Sortasi === undefined ? ':&nbsp;&nbsp;KG' : ': ' + kgTxt(r.Sortasi)) + '</td></tr>'
-    + '<tr><td>Harga TBS</td><td><b>: ' + n(r.Harga) + '</b></td><td>Berat Netto</td><td class="r"><b>: ' + n(r.Netto) + '</b> KG</td></tr></table>';
+    + '<tr><td>Harga TBS</td><td class="big">: ' + n(r.Harga) + '</td><td>Berat Netto</td><td class="r big">: ' + n(r.Netto) + ' KG</td></tr></table>';
   h += '<div class="s-h">A.&nbsp; Rincian Perhitungan</div>';
-  h += '<table class="s-box"><tr><th style="width:9%">No</th><th>Harga Tbs</th><th>NETTO</th><th>Jumlah</th></tr><tr><td class="c">&nbsp;</td><td class="c"><b>' + n(r.Harga) + '</b></td><td class="c"><b>' + n(r.Netto) + '</b></td><td class="r"><b>' + n(r.Kotor) + '</b></td></tr></table>';
+  h += '<table class="s-box"><tr><th style="width:9%">No</th><th>Harga Tbs</th><th>NETTO</th><th>Jumlah</th></tr><tr><td class="c">&nbsp;</td><td class="c big">' + n(r.Harga) + '</td><td class="c big">' + n(r.Netto) + '</td><td class="r big">' + n(r.Kotor) + '</td></tr></table>';
   h += '<div class="s-h">B.&nbsp; Rincian Potongan</div>';
   h += '<table class="s-box"><tr><th style="width:9%">No</th><th style="width:37%">Urain</th><th style="width:21%">Jumlah / Kg</th><th style="width:33%">Jumlah</th></tr>';
   std.forEach((s, i) => { h += '<tr><td class="c">' + (i + 1) + '</td><td>' + s[0] + '</td><td class="c">' + n(s[1]) + '</td><td class="r">' + n(s[2]) + '</td></tr>'; });
@@ -813,9 +813,9 @@ function slipHtml(r) {
   h += '<tr class="tot"><td colspan="3">JUMLAH POTONGAN</td><td class="r">' + n(r.Total_Potongan) + '</td></tr></table>';
   h += '<table style="margin-top:5px"><tr><td style="width:34%"><b>Gaji Bersih :</b></td><td style="width:66%"><span class="hl hl-t gb">Rp&nbsp;&nbsp;' + n(r.Gaji_Bersih) + '</span></td></tr></table>';
   h += '<div class="s-terb"><b>Terbilang :</b> ' + (K ? '..............................................................' : '<i>' + esc(terbilang(r.Gaji_Bersih)) + '</i>') + '</div>';
-  h += '<div class="s-tgl">' + esc(g.tempat_cetak || '') + ', ' + (K ? '........................' : tglIndo(r.Tanggal)) + '</div>';
+  h += '<div class="s-bawah"><div class="s-tgl">' + esc(g.tempat_cetak || '') + ', ' + (K ? '........................' : tglIndo(r.Tanggal)) + '</div>';
   h += '<table class="s-ttd"><tr><td>Ketua Kelompok Tani</td><td>Bendahara</td><td>Sekretaris</td></tr><tr class="gap">' + ['ketua', 'bendahara', 'sekretaris'].map(k => '<td>' + (g['ttd_' + k] ? '<img class="s-sig" src="' + esc(g['ttd_' + k]) + '" alt="">' : '&nbsp;') + '</td>').join('') + '</tr>'
-    + '<tr><td>( ' + esc(g.ketua_nama || '') + ' )</td><td>( ' + esc(g.bendahara_nama || '') + ' )</td><td>( ' + esc(g.sekretaris_nama || '') + ' )</td></tr></table>';
+    + '<tr><td>( ' + esc(g.ketua_nama || '') + ' )</td><td>( ' + esc(g.bendahara_nama || '') + ' )</td><td>( ' + esc(g.sekretaris_nama || '') + ' )</td></tr></table></div>';
   return h + '</div>';
 }
 function slipSheets(list) {
