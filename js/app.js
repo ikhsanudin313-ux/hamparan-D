@@ -1473,16 +1473,16 @@ function hintPin() {
   if (S.pinJenis === 'Bayar') { const s2 = sisa - j; h.innerHTML = 'Sisa pinjaman ' + rp(sisa) + (j ? ' → setelah bayar <b class="' + (s2 < 0 ? 'text-out' : '') + '">' + rp(s2) + '</b>' + (s2 < 0 ? ' (melebihi sisa!)' : '') : ''); }
   else h.textContent = sisa ? 'Sisa pinjaman saat ini ' + rp(sisa) : 'Peminjam baru atau sudah lunas.';
 }
-function bukaFormPin(jenis, id) {
+function bukaFormPinjam(jenis, id) {
   if (!can('pinjaman.save')) return toast('Hanya Ketua yang dapat mencatat pinjaman.', 'warning');
   const x = id ? S.data.pinjaman.find(r => r.ID === id) : null;
   S.editPinId = id || null; S.pinJenis = x ? x.Jenis : jenis;
-  $('#mdPinTitle').textContent = (x ? 'Ubah ' : 'Catat ') + (S.pinJenis === 'Bayar' ? 'Pembayaran Pinjaman' : 'Pinjaman Baru');
+  $('#mdPinjamTitle').textContent = (x ? 'Ubah ' : 'Catat ') + (S.pinJenis === 'Bayar' ? 'Pembayaran Pinjaman' : 'Pinjaman Baru');
   $('#dlPeminjam').innerHTML = rekapPinjaman().concat(S.data.petani.map(p => ({ nama: p.Nama })), S.data.penabung.map(p => ({ nama: p.Nama }))).map(r => '<option value="' + esc(r.nama) + '">').join('');
   $('#fpiTanggal').value = x ? x.Tanggal : hari(); $('#fpiJumlah').value = x ? x.Jumlah : ''; $('#fpiNama').value = x ? x.Peminjam : ''; $('#fpiKet').value = x ? x.Keterangan : '';
-  hintPin(); modal('mdPin').show();
+  hintPin(); modal('mdPinjam').show();
 }
-async function simpanPin(ev) {
+async function simpanPinjam(ev) {
   ev.preventDefault();
   const jumlah = Math.round(num($('#fpiJumlah').value)), nama = $('#fpiNama').value.trim();
   if (!nama || !$('#fpiTanggal').value) return toast('Isi nama peminjam dan tanggal.', 'warning');
@@ -1492,7 +1492,7 @@ async function simpanPin(ev) {
   const sem = Object.assign({}, lama || {}, { ID: lama ? lama.ID : tmpId(), No_Pin: lama ? lama.No_Pin : '(otomatis)', Tanggal: payload.Tanggal, Peminjam: nama, Jenis: payload.Jenis, Jumlah: jumlah, Keterangan: payload.Keterangan, Dicatat_Oleh: lama ? lama.Dicatat_Oleh : S.user.nama, _pending: true });
   const salinan = lama ? Object.assign({}, lama) : null;
   if (lama) S.data.pinjaman[S.data.pinjaman.indexOf(lama)] = sem; else S.data.pinjaman.push(sem);
-  modal('mdPin').hide(); renderHalaman(S.page); toast('Menyimpan pinjaman…', 'info');
+  modal('mdPinjam').hide(); renderHalaman(S.page); toast('Menyimpan pinjaman…', 'info');
   try {
     const rec = await api('pinjaman.save', payload);
     S.data.pinjaman[S.data.pinjaman.findIndex(x => x.ID === sem.ID)] = rec; renderHalaman(S.page); toast('Tersimpan: ' + rec.No_Pin, 'success');
@@ -1633,7 +1633,7 @@ async function simpanPin(ev) {
    ============================================================ */
 const AKSI = {
   slip: id => { const r = S.data.panen.find(x => x.ID === id); if (r) bukaPreview([r]); },
-  editPanen, hapusPanen, editKas: id => bukaFormKas(null, id), hapusKas, editTab: id => bukaFormTab(null, id), hapusTab, editPenabung, hapusPenabung, editPin: id => bukaFormPin(null, id), hapusPin, detailPin: nm => { $('#pinPeminjam').value = nm; renderPinjaman(); $('#pinRiwayat').scrollIntoView({ behavior: 'smooth' }); }, detailTab: id => { $('#tabPetani').value = id; renderTabungan(); $('#tabRiwayat').scrollIntoView({ behavior: 'smooth' }); }, bukti: lihatBukti,
+  editPanen, hapusPanen, editKas: id => bukaFormKas(null, id), hapusKas, editTab: id => bukaFormTab(null, id), hapusTab, editPenabung, hapusPenabung, editPin: id => bukaFormPinjam(null, id), hapusPin, detailPin: nm => { $('#pinPeminjam').value = nm; renderPinjaman(); $('#pinRiwayat').scrollIntoView({ behavior: 'smooth' }); }, detailTab: id => { $('#tabPetani').value = id; renderTabungan(); $('#tabRiwayat').scrollIntoView({ behavior: 'smooth' }); }, bukti: lihatBukti,
   editPetani: bukaFormPetani, togglePetani, hapusPetani, editUser: bukaFormUser, resetPin: bukaFormPin, hapusHarga,
   isiHarga: id => { const h = S.data.harga.find(x => x.ID === id); if (h) { $('#fhTanggal').value = h.Tanggal; $('#fhHarga').value = h.Harga; $('#fhCatatan').value = h.Catatan || ''; $('#fhHarga').focus(); } },
   hapusManual: i => { FP.manual.splice(+i, 1); renderManual(); hitungForm(); }
@@ -1702,8 +1702,8 @@ function pasangEvent() {
   $('#btnTabExcel').onclick = exportTabunganExcel; $('#btnTabPdf').onclick = e => exportTabunganPdf(e.currentTarget);
   $('#btnTabPenabung').onclick = () => bukaFormPenabung(); $('#formPenabung').addEventListener('submit', simpanPenabung);
   // Pinjaman
-  $('#btnPinBaru').onclick = () => bukaFormPin('Pinjam'); $('#btnPinBayar').onclick = () => bukaFormPin('Bayar');
-  $('#formPin').addEventListener('submit', simpanPin); $('#fpiNama').addEventListener('input', hintPin); $('#fpiJumlah').addEventListener('input', hintPin);
+  $('#btnPinBaru').onclick = () => bukaFormPinjam('Pinjam'); $('#btnPinBayar').onclick = () => bukaFormPinjam('Bayar');
+  $('#formPinjam').addEventListener('submit', simpanPinjam); $('#fpiNama').addEventListener('input', hintPin); $('#fpiJumlah').addEventListener('input', hintPin);
   $('#pinSearch').addEventListener('input', debounce(renderPinjaman, 200)); $('#pinPeminjam').onchange = renderPinjaman; $('#pinJenis').onchange = renderPinjaman;
   $('#btnPinExcel').onclick = exportPinjamanExcel; $('#btnPinPdf').onclick = e => exportPinjamanPdf(e.currentTarget);
   // Petani
