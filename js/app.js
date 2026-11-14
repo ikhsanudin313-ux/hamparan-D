@@ -1046,6 +1046,16 @@ function renderPetani() {
     l.map(p => ({ cls: p._pending ? 'pending' : '', cells: ['<span class="badge-x b-ok">' + esc(p.Kapling || '–') + '</span>', '<b>' + esc(p.Nama) + '</b>' + (p.HP ? '<div class="sub">' + esc(p.HP) + '</div>' : ''), fmtKg(p.Luas_Ha), ringkasPotongan(p), terakhir[p.ID_Petani] ? tglIndo(terakhir[p.ID_Petani]) : '–', '<span class="badge-x ' + (p.Status === 'Aktif' ? 'b-ok' : 'b-off') + '">' + esc(p.Status) + '</span>',
       edit && !p._pending ? '<button class="btn-x btn-out btn-sm btn-ic" data-act="editPetani" data-id="' + esc(p.ID_Petani) + '" aria-label="Ubah"><i class="bi bi-pencil"></i></button> <button class="btn-x btn-out btn-sm btn-ic" data-act="togglePetani" data-id="' + esc(p.ID_Petani) + '" aria-label="Ubah status"><i class="bi ' + (p.Status === 'Aktif' ? 'bi-pause-circle' : 'bi-play-circle') + '"></i></button> <button class="btn-x btn-out btn-sm btn-ic" data-act="hapusPetani" data-id="' + esc(p.ID_Petani) + '" aria-label="Hapus"><i class="bi bi-trash text-out"></i></button>' : ''] })),
     { kosong: 'Tidak ada petani pada filter ini.' });
+  renderNonPetani();
+}
+function renderNonPetani() {
+  const q = ($('#ptSearch').value || '').trim().toLowerCase();
+  const l = S.data.penabung.slice().sort((a, b) => a.Nama.localeCompare(b.Nama)).filter(p => !q || (p.Nama + ' ' + p.Catatan).toLowerCase().includes(q));
+  const edit = can('penabung.save');
+  $('#pnbTable').innerHTML = tabel([{ h: 'Nama' }, { h: 'No. HP' }, { h: 'Catatan' }, { h: 'Saldo tabungan (Rp)', c: 'r' }, { h: 'Aksi', c: 'r', k: 'acts nolabel' }],
+    l.map(p => ['<b>' + esc(p.Nama) + '</b><div class="sub">Non-petani</div>', esc(p.HP || '–'), esc(p.Catatan || '–'), fmtN(saldoTab(p.ID_Penabung)),
+      edit ? '<button class="btn-x btn-out btn-sm btn-ic" data-act="editPenabung" data-id="' + esc(p.ID_Penabung) + '" aria-label="Ubah"><i class="bi bi-pencil"></i></button> <button class="btn-x btn-out btn-sm btn-ic" data-act="hapusPenabung" data-id="' + esc(p.ID_Penabung) + '" aria-label="Hapus"><i class="bi bi-trash text-out"></i></button>' : '']),
+    { kosong: 'Belum ada data non-petani.' });
 }
 function bukaFormPetani(id) {
   const p = id ? petaniById(id) : null;
@@ -1290,7 +1300,7 @@ function rekapTabungan() {
   S.data.panen.forEach(r => { if (num(r.Tabungan) > 0) ambil(r.ID_Petani, r.Nama, r.Kapling).panen += num(r.Tabungan); });
   S.data.tabungan.forEach(t => { const x = ambil(t.ID_Petani, t.Nama); if (t.Jenis === 'Tarik') x.tarik += num(t.Jumlah); else x.setor += num(t.Jumlah); });
   return Object.keys(m).map(k => { const x = m[k]; x.saldo = x.panen + x.setor - x.tarik; return x; })
-      .filter(x => x.panen || x.setor || x.tarik || x.penabung).sort((a, b) => a.nama.localeCompare(b.nama));
+      .filter(x => x.panen || x.setor || x.tarik || x.penabung).sort((a, b) => (a.penabung ? 1 : 0) - (b.penabung ? 1 : 0) || a.nama.localeCompare(b.nama));
 }
 function saldoTab(id) { const x = rekapTabungan().find(r => r.id === id); return x ? x.saldo : 0; }
 function riwayatTabungan() {
@@ -1700,7 +1710,7 @@ function pasangEvent() {
   $('#formTab').addEventListener('submit', simpanTab); $('#ftbPetani').onchange = hintTab; $('#ftbJumlah').addEventListener('input', hintTab);
   $('#tabSearch').addEventListener('input', debounce(renderTabungan, 200)); $('#tabPetani').onchange = renderTabungan; $('#tabJenis').onchange = renderTabungan;
   $('#btnTabExcel').onclick = exportTabunganExcel; $('#btnTabPdf').onclick = e => exportTabunganPdf(e.currentTarget);
-  $('#btnTabPenabung').onclick = () => bukaFormPenabung(); $('#formPenabung').addEventListener('submit', simpanPenabung);
+  $('#btnTabPenabung').onclick = () => bukaFormPenabung(); $('#btnAddNonPetani').onclick = () => bukaFormPenabung(); $('#formPenabung').addEventListener('submit', simpanPenabung);
   // Pinjaman
   $('#btnPinBaru').onclick = () => bukaFormPinjam('Pinjam'); $('#btnPinBayar').onclick = () => bukaFormPinjam('Bayar');
   $('#formPinjam').addEventListener('submit', simpanPinjam); $('#fpiNama').addEventListener('input', hintPin); $('#fpiJumlah').addEventListener('input', hintPin);
