@@ -758,8 +758,8 @@ async function simpanImpor() {
 /* ============================================================
    SLIP BPHP (cetak, PDF)
    ============================================================ */
-const SLIP_CSS = '.sheet{width:100%;height:311mm;border-collapse:collapse;table-layout:fixed;page-break-after:always}.sheet:last-child{page-break-after:auto}.sheet td.cell{height:50%}'
-  + '.sheet td.cell{width:50%;vertical-align:top;padding:2.5mm 3mm;border:1px dashed #9CA3AF;background:#fff}'
+const SLIP_CSS = '.sheet{width:100%;height:318mm;border-collapse:collapse;table-layout:fixed;page-break-after:always}.sheet:last-child{page-break-after:auto}.sheet td.cell{height:50%}'
+  + '.sheet td.cell{width:50%;vertical-align:top;padding:2.5mm 1.5mm;border:1px dashed #9CA3AF;background:#fff}'
   + '.slip{font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;color:#000;width:100%;line-height:1.3}'
   + '.slip table{width:100%;border-collapse:collapse;table-layout:fixed}'
   + '.slip td,.slip th{padding:1px 3px;font-size:8.5pt;vertical-align:middle;color:#000}'
@@ -767,9 +767,9 @@ const SLIP_CSS = '.sheet{width:100%;height:311mm;border-collapse:collapse;table-
   + '.s-kop div{font-weight:bold;font-size:8.5pt;line-height:1.25}.s-kop .a{font-weight:normal;font-size:7.5pt}'
   + '.s-no{font-size:8pt;margin:2px 0 4px}.s-h{font-weight:bold;margin:5px 0 2px}'
   + '.s-box th,.s-box td{border:1px solid #000}.s-box th{text-align:center;font-weight:bold}'
-  + '.slip .hl{background:#FFF176;font-weight:bold}.slip .r{text-align:right}.slip .c{text-align:center}'
+  + '.slip *{-webkit-print-color-adjust:exact;print-color-adjust:exact}.slip .hl{background:#FFF176;font-weight:bold}.slip .r{text-align:right}.slip .c{text-align:center}'
   + '.slip .tot td{font-weight:bold}.s-tgl{text-align:right;font-size:8pt;margin:6px 0 2px}'
-  + '.slip .gb{font-size:14pt;font-weight:800;padding-top:2px;padding-bottom:2px}.s-terb{font-size:8pt;margin-top:3px;text-transform:capitalize;line-height:1.3}.s-terb b{text-transform:none}.s-ttd td{text-align:center;font-size:8pt}.s-ttd .gap td{height:38px;vertical-align:middle}.s-sig{max-height:34px;max-width:92%;display:block;margin:0 auto}.s-kop img{float:left;height:11mm;margin-right:2mm}.s-kop:after{content:"";display:block;clear:both}';
+  + '.slip .gb{font-size:12pt;font-weight:800;padding-top:2px;padding-bottom:2px}.s-terb{font-size:8pt;margin-top:3px;text-transform:capitalize;line-height:1.3}.s-terb b{text-transform:none}.s-ttd td{text-align:center;font-size:8pt}.s-ttd .gap td{height:38px;vertical-align:middle}.s-sig{max-height:34px;max-width:92%;display:block;margin:0 auto}.s-kop img{float:left;height:11mm;margin-right:2mm}.s-kop:after{content:"";display:block;clear:both}';
 
 /** Angka -> terbilang Bahasa Indonesia (mis. 2301000 -> "dua juta tiga ratus satu ribu rupiah"). */
 function terbilang(n) {
@@ -811,7 +811,7 @@ function slipHtml(r) {
   h += '<tr><td class="c">5</td><td colspan="3">Lain – Lain</td></tr>';
   lain.forEach(l => { h += '<tr><td></td><td>· ' + esc(l[0]) + '</td><td class="c">' + esc(l[1]) + '</td><td class="r">' + n(l[2]) + '</td></tr>'; });
   h += '<tr class="tot"><td colspan="3">JUMLAH POTONGAN</td><td class="r">' + n(r.Total_Potongan) + '</td></tr></table>';
-  h += '<table style="margin-top:5px"><tr><td style="width:30%"><b>Gaji Bersih :</b></td><td class="hl gb" style="width:14%">Rp</td><td class="hl gb r" style="width:56%">' + n(r.Gaji_Bersih) + '</td></tr></table>';
+  h += '<table style="margin-top:5px"><tr><td style="width:34%"><b>Gaji Bersih :</b></td><td class="hl gb r" style="width:66%">Rp&nbsp;&nbsp;' + n(r.Gaji_Bersih) + '</td></tr></table>';
   h += '<div class="s-terb"><b>Terbilang :</b> ' + (K ? '..............................................................' : '<i>' + esc(terbilang(r.Gaji_Bersih)) + '</i>') + '</div>';
   h += '<div class="s-tgl">' + esc(g.tempat_cetak || '') + ', ' + (K ? '........................' : tglIndo(r.Tanggal)) + '</div>';
   h += '<table class="s-ttd"><tr><td>Ketua Kelompok Tani</td><td>Bendahara</td><td>Sekretaris</td></tr><tr class="gap">' + ['ketua', 'bendahara', 'sekretaris'].map(k => '<td>' + (g['ttd_' + k] ? '<img class="s-sig" src="' + esc(g['ttd_' + k]) + '" alt="">' : '&nbsp;') + '</td>').join('') + '</tr>'
@@ -828,7 +828,7 @@ function slipSheets(list) {
   return out;
 }
 function slipDocument(list) {
-  return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:215mm 330mm;margin:8mm}body{margin:0}' + SLIP_CSS + '</style></head><body>' + slipSheets(list) + '</body></html>';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:215mm 330mm;margin:5mm 2mm}body{margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}' + SLIP_CSS + '</style></head><body>' + slipSheets(list) + '</body></html>';
 }
 function fitPreview(el) {
   const wrap = el.parentElement; if (!wrap) return;
