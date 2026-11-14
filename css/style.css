@@ -314,3 +314,8 @@ textarea.fx { height: auto; min-height: 72px; padding: 10px 12px; resize: vertic
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ---------- Tanda tangan ---------- */
+.ttd-prev{display:flex;align-items:center;justify-content:center;width:120px;height:56px;border:1px dashed var(--bd,#9aa8a0);border-radius:10px;background:#fff;overflow:hidden}
+.ttd-prev img{max-width:100%;max-height:100%}
+.ttd-prev .ttd-kosong{font-size:.72rem;color:#7a8a80}

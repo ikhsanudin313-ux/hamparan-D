@@ -14,6 +14,7 @@ const NAV = [
   { id: 'panen', ikon: 'bi-basket3', label: 'Input Timbangan Panen', pendek: 'Panen', bawah: true },
   { id: 'slip', ikon: 'bi-receipt', label: 'Slip BPHP TBS', pendek: 'Slip', bawah: true },
   { id: 'kas', ikon: 'bi-wallet2', label: 'Buku Kas Hamparan', pendek: 'Kas', bawah: true },
+  { id: 'tabungan', ikon: 'bi-piggy-bank', label: 'Tabungan Petani', pendek: 'Tabungan' },
   { id: 'petani', ikon: 'bi-people', label: 'Data Petani & Kapling', pendek: 'Petani' },
   { id: 'laporan', ikon: 'bi-bar-chart-line', label: 'Laporan', pendek: 'Laporan' },
   { id: 'tarif', ikon: 'bi-sliders', label: 'Tarif, Potongan & Harga TBS', pendek: 'Tarif' },
@@ -23,16 +24,16 @@ const ACL = {
   'petani.save': ['Sekretaris'], 'petani.status': ['Sekretaris'], 'petani.delete': ['Sekretaris'], 'contoh.hapus': ['Ketua', 'Sekretaris'],
   'panen.save': ['Sekretaris'], 'panen.import': ['Sekretaris'], 'panen.delete': ['Sekretaris'],
   'harga.save': ['Bendahara', 'Sekretaris'], 'harga.delete': ['Bendahara', 'Sekretaris'], 'pengaturan.save': ['Bendahara', 'Sekretaris'],
-  'kas.save': ['Bendahara', 'Sekretaris'], 'kas.delete': ['Bendahara', 'Sekretaris'],
+  'kas.save': ['Bendahara', 'Sekretaris'], 'kas.delete': ['Bendahara', 'Sekretaris'], 'tabungan.save': ['Bendahara', 'Sekretaris'], 'tabungan.delete': ['Bendahara', 'Sekretaris'],
   'user.save': ['Ketua', 'Sekretaris'], 'user.resetPin': ['Ketua', 'Sekretaris'], 'log.get': ['Ketua', 'Sekretaris']
 };
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const WARNA = ['#1B5E20', '#2E7D32', '#4CAF50', '#81C784', '#F9A825', '#FFB74D', '#8D6E63', '#90A4AE', '#DC2626', '#6D4C41'];
 
 const S = {
-  token: null, user: null, page: 'dashboard', editId: null, editKasId: null, kasJenis: 'Pemasukan',
-  data: { petani: [], harga: [], panen: [], kas: [], pengaturan: {}, kategoriKas: {}, users: [], log: [] },
-  logoBaru: null, charts: {}, busy: 0, terakhirSinkron: 0, slipAktif: [], tmpSeq: 0
+  token: null, user: null, page: 'dashboard', editId: null, editKasId: null, editTabId: null, tabJenis: 'Setor', kasJenis: 'Pemasukan',
+  data: { petani: [], harga: [], panen: [], kas: [], tabungan: [], pengaturan: {}, kategoriKas: {}, users: [], log: [] },
+  logoBaru: null, ttdBaru: {}, charts: {}, busy: 0, terakhirSinkron: 0, slipAktif: [], tmpSeq: 0
 };
 
 /* ---------- Helper umum ---------- */
@@ -217,7 +218,7 @@ function muatBootstrap() {
 
 function terapkanData(d) {
   S.user = d.user;
-  S.data.petani = d.petani; S.data.harga = d.harga; S.data.panen = d.panen; S.data.kas = d.kas;
+  S.data.petani = d.petani; S.data.harga = d.harga; S.data.panen = d.panen; S.data.kas = d.kas; S.data.tabungan = d.tabungan || [];
   S.data.pengaturan = d.pengaturan; S.data.kategoriKas = d.kategoriKas; S.data.users = d.users || [];
   S.terakhirSinkron = Date.now();
   terapkanLogo();
@@ -229,7 +230,7 @@ function terapkanData(d) {
 /** Sinkron ulang dari server (tombol / saat tab kembali aktif). */
 async function sinkron(diam) {
   if (S.busy > 0 || !S.token) return;
-  if (S.data.panen.some(r => r._pending) || S.data.kas.some(r => r._pending) || S.data.petani.some(r => r._pending)) return;
+  if (S.data.panen.some(r => r._pending) || S.data.kas.some(r => r._pending) || S.data.tabungan.some(r => r._pending) || S.data.petani.some(r => r._pending)) return;
   try {
     const d = await api('refresh');
     terapkanData(d);
@@ -266,7 +267,7 @@ function tutupSidebar() { $('#sidebar').classList.remove('open'); $('#sbBackdrop
 
 function renderHalaman(id) {
   ({
-    dashboard: renderDashboard, panen: renderPanen, slip: renderSlip, kas: renderKas,
+    dashboard: renderDashboard, panen: renderPanen, slip: renderSlip, kas: renderKas, tabungan: renderTabungan,
     petani: renderPetani, laporan: renderLaporan, tarif: renderTarif, pengguna: renderPengguna
   }[id] || (() => { }))();
 }
@@ -767,7 +768,7 @@ const SLIP_CSS = '.sheet{width:100%;height:311mm;border-collapse:collapse;table-
   + '.s-box th,.s-box td{border:1px solid #000}.s-box th{text-align:center;font-weight:bold}'
   + '.slip .hl{background:#FFF176;font-weight:bold}.slip .r{text-align:right}.slip .c{text-align:center}'
   + '.slip .tot td{font-weight:bold}.s-tgl{text-align:right;font-size:8pt;margin:6px 0 2px}'
-  + '.s-ttd td{text-align:center;font-size:8pt}.s-ttd .gap td{height:38px}.s-kop img{float:left;height:11mm;margin-right:2mm}.s-kop:after{content:"";display:block;clear:both}';
+  + '.s-ttd td{text-align:center;font-size:8pt}.s-ttd .gap td{height:38px;vertical-align:middle}.s-sig{max-height:34px;max-width:92%;display:block;margin:0 auto}.s-kop img{float:left;height:11mm;margin-right:2mm}.s-kop:after{content:"";display:block;clear:both}';
 
 function slipHtml(r) {
   const g = S.data.pengaturan || {};
@@ -793,7 +794,7 @@ function slipHtml(r) {
   h += '<tr class="tot"><td colspan="3">JUMLAH POTONGAN</td><td class="r">' + n(r.Total_Potongan) + '</td></tr></table>';
   h += '<table style="margin-top:5px"><tr><td style="width:40%"><b>Gaji Bersih :</b></td><td class="hl" style="width:14%">Rp</td><td class="hl r" style="width:46%">' + n(r.Gaji_Bersih) + '</td></tr></table>';
   h += '<div class="s-tgl">' + esc(g.tempat_cetak || '') + ', ' + (K ? '........................' : tglIndo(r.Tanggal)) + '</div>';
-  h += '<table class="s-ttd"><tr><td>Ketua Kelompok Tani</td><td>Bendahara</td><td>Sekretaris</td></tr><tr class="gap"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>'
+  h += '<table class="s-ttd"><tr><td>Ketua Kelompok Tani</td><td>Bendahara</td><td>Sekretaris</td></tr><tr class="gap">' + ['ketua', 'bendahara', 'sekretaris'].map(k => '<td>' + (g['ttd_' + k] ? '<img class="s-sig" src="' + esc(g['ttd_' + k]) + '" alt="">' : '&nbsp;') + '</td>').join('') + '</tr>'
     + '<tr><td>( ' + esc(g.ketua_nama || '') + ' )</td><td>( ' + esc(g.bendahara_nama || '') + ' )</td><td>( ' + esc(g.sekretaris_nama || '') + ' )</td></tr></table>';
   return h + '</div>';
 }
@@ -1156,6 +1157,50 @@ function perkecilLogo(file) {
   });
 }
 
+
+/* ---------- Tanda tangan ---------- */
+const TTD_KUNCI = ['ketua', 'bendahara', 'sekretaris'];
+function tampilPreviewTtd() {
+  TTD_KUNCI.forEach(k => {
+    const el = $('#ttdPrev_' + k); if (!el) return;
+    const v = S.ttdBaru[k] !== undefined ? S.ttdBaru[k] : (S.data.pengaturan || {})['ttd_' + k];
+    el.innerHTML = v ? '<img alt="Tanda tangan ' + k + '" src="' + esc(v) + '">' : '<span class="ttd-kosong">Belum ada</span>';
+  });
+}
+function olahTtd(file) {
+  return new Promise((ok, gagal) => {
+    if (!file) return ok(null);
+    const fr = new FileReader();
+    fr.onerror = () => gagal(new Error('Gagal membaca gambar.'));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => gagal(new Error('Berkas bukan gambar yang valid.'));
+      img.onload = () => {
+        const coba = maks => {
+          const sk = Math.min(1, maks / Math.max(img.width, img.height));
+          const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * sk)); c.height = Math.max(1, Math.round(img.height * sk));
+          const x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height);
+          const id = x.getImageData(0, 0, c.width, c.height), d = id.data;
+          for (let i = 0; i < d.length; i += 4) {
+            const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            const a = lum >= 225 ? 0 : lum <= 165 ? 255 : Math.round((225 - lum) / 60 * 255);
+            d[i] = (d[i] >> 5) << 5; d[i + 1] = (d[i + 1] >> 5) << 5; d[i + 2] = (d[i + 2] >> 5) << 5; d[i + 3] = Math.min(d[i + 3], a);
+          }
+          x.putImageData(id, 0, 0);
+          return c.toDataURL('image/png');
+        };
+        let r = coba(320);
+        if (r.length > 35000) r = coba(240);
+        if (r.length > 35000) r = coba(180);
+        if (r.length > 35000) return gagal(new Error('Gambar terlalu rumit. Foto tanda tangan di kertas putih dengan pulpen gelap.'));
+        ok(r);
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
 /* ============================================================
    LAPORAN
    ============================================================ */
@@ -1234,6 +1279,115 @@ function exportKasPdf(btn) {
 }
 
 /* ============================================================
+   TABUNGAN PETANI
+   ============================================================ */
+function rekapTabungan() {
+  const m = {};
+  const ambil = (id, nama, kapling) => m[id] || (m[id] = { id, nama: nama || '', kapling: kapling || '', panen: 0, setor: 0, tarik: 0 });
+  S.data.petani.forEach(p => ambil(p.ID_Petani, p.Nama, p.Kapling));
+  S.data.panen.forEach(r => { if (num(r.Tabungan) > 0) ambil(r.ID_Petani, r.Nama, r.Kapling).panen += num(r.Tabungan); });
+  S.data.tabungan.forEach(t => { const x = ambil(t.ID_Petani, t.Nama); if (t.Jenis === 'Tarik') x.tarik += num(t.Jumlah); else x.setor += num(t.Jumlah); });
+  return Object.keys(m).map(k => { const x = m[k]; x.saldo = x.panen + x.setor - x.tarik; return x; })
+    .filter(x => x.panen || x.setor || x.tarik).sort((a, b) => a.nama.localeCompare(b.nama));
+}
+function saldoTab(id) { const x = rekapTabungan().find(r => r.id === id); return x ? x.saldo : 0; }
+function riwayatTabungan() {
+  const l = [];
+  S.data.panen.forEach(r => { if (num(r.Tabungan) > 0) l.push({ src: 'panen', ID: r.ID, Tanggal: r.Tanggal, ID_Petani: r.ID_Petani, Nama: r.Nama, Jenis: 'Setor', Jumlah: num(r.Tabungan), No: r.No_Bukti, Ket: 'Potongan tabungan slip ' + r.No_Bukti, _pending: r._pending }); });
+  S.data.tabungan.forEach(t => l.push({ src: 'manual', ID: t.ID, Tanggal: t.Tanggal, ID_Petani: t.ID_Petani, Nama: t.Nama, Jenis: t.Jenis, Jumlah: num(t.Jumlah), No: t.No_Tab, Ket: t.Keterangan || (t.Jenis === 'Tarik' ? 'Penarikan' : 'Setoran'), _pending: t._pending }));
+  l.sort((a, b) => String(a.Tanggal).localeCompare(String(b.Tanggal)) || String(a.No).localeCompare(String(b.No)));
+  const run = {};
+  l.forEach(x => { run[x.ID_Petani] = (run[x.ID_Petani] || 0) + (x.Jenis === 'Tarik' ? -x.Jumlah : x.Jumlah); x._saldo = run[x.ID_Petani]; });
+  return l;
+}
+function renderTabungan() {
+  const rk = rekapTabungan();
+  const q = ($('#tabSearch').value || '').toLowerCase();
+  const tampil = q ? rk.filter(x => (x.nama + ' ' + x.kapling).toLowerCase().includes(q)) : rk;
+  const tot = { panen: sum(rk, 'panen'), setor: sum(rk, 'setor'), tarik: sum(rk, 'tarik'), saldo: sum(rk, 'saldo') };
+  $('#tabKpi').innerHTML = kpi('bi-piggy-bank', 'Total saldo tabungan', rp(tot.saldo), rk.length + ' petani menabung', 'gold') + kpi('bi-arrow-down-left', 'Setoran (slip + manual)', rp(tot.panen + tot.setor), 'Potongan slip ' + rp(tot.panen)) + kpi('bi-arrow-up-right', 'Total penarikan', rp(tot.tarik), 'Sudah dibayarkan', 'red');
+  const edit = can('tabungan.save');
+  const baris = tampil.map(x => [
+    '<b>' + esc(x.nama) + '</b>' + (x.kapling ? '<div class="sub">' + esc(x.kapling) + '</div>' : ''),
+    fmtN(x.panen), fmtN(x.setor), fmtN(x.tarik), '<b class="' + (x.saldo < 0 ? 'text-out' : '') + '">' + fmtN(x.saldo) + '</b>',
+    '<button class="btn-x btn-out btn-sm" data-act="detailTab" data-id="' + esc(x.id) + '"><i class="bi bi-list-ul"></i> Riwayat</button>']);
+  $('#tabRekap').innerHTML = tabel([{ h: 'Petani' }, { h: 'Dari slip (Rp)', c: 'r' }, { h: 'Setoran (Rp)', c: 'r' }, { h: 'Penarikan (Rp)', c: 'r' }, { h: 'Saldo (Rp)', c: 'r' }, { h: 'Aksi', c: 'r', k: 'acts nolabel' }], baris,
+    { kosong: 'Belum ada tabungan. Tabungan terisi otomatis dari potongan di slip panen.', foot: ['<b>TOTAL</b>', '<b>' + fmtN(tot.panen) + '</b>', '<b>' + fmtN(tot.setor) + '</b>', '<b>' + fmtN(tot.tarik) + '</b>', '<b>' + fmtN(tot.saldo) + '</b>', ''] });
+  const pil = $('#tabPetani').value || '';
+  isiSelect($('#tabPetani'), [{ v: '', l: 'Semua petani' }].concat(rk.map(x => ({ v: x.id, l: x.nama }))), pil);
+  const j = $('#tabJenis').value, pt = $('#tabPetani').value;
+  let r = riwayatTabungan();
+  if (pt) r = r.filter(x => x.ID_Petani === pt);
+  if (j) r = r.filter(x => x.Jenis === j);
+  r = r.reverse();
+  $('#tabRiwayat').innerHTML = tabel([{ h: 'Tanggal / no.' }, { h: 'Petani' }, { h: 'Keterangan' }, { h: 'Jumlah (Rp)', c: 'r' }, { h: 'Saldo (Rp)', c: 'r' }, { h: 'Aksi', c: 'r', k: 'acts nolabel' }], r.map(x => ({
+    cls: x._pending ? 'pending' : '',
+    cells: ['<b>' + tglIndo(x.Tanggal) + '</b><div class="sub">' + esc(x.No) + '</div>', esc(x.Nama),
+      esc(x.Ket) + '<div class="sub">' + (x.src === 'panen' ? 'Otomatis dari slip' : 'Manual') + '</div>',
+      '<span class="fw-800 ' + (x.Jenis === 'Tarik' ? 'text-out' : 'text-in') + '">' + (x.Jenis === 'Tarik' ? '−' : '+') + fmtN(x.Jumlah) + '</span>',
+      fmtN(x._saldo),
+      (x.src === 'manual' && edit && !x._pending) ? '<button class="btn-x btn-out btn-sm btn-ic" data-act="editTab" data-id="' + esc(x.ID) + '" aria-label="Ubah"><i class="bi bi-pencil"></i></button> <button class="btn-x btn-out btn-sm btn-ic" data-act="hapusTab" data-id="' + esc(x.ID) + '" aria-label="Hapus"><i class="bi bi-trash text-out"></i></button>' : '<span class="muted">–</span>']
+  })), { kosong: 'Belum ada riwayat tabungan.' });
+}
+function hintTab() {
+  const id = $('#ftbPetani').value, j = num($('#ftbJumlah').value), h = $('#ftbHint');
+  if (!id) { h.textContent = ''; return; }
+  const lama = S.editTabId ? S.data.tabungan.find(t => t.ID === S.editTabId) : null;
+  let saldo = saldoTab(id); if (lama && lama.ID_Petani === id) saldo -= (lama.Jenis === 'Tarik' ? -1 : 1) * num(lama.Jumlah);
+  if (S.tabJenis === 'Tarik' && j) { const sisa = saldo - j; h.innerHTML = 'Saldo ' + rp(saldo) + ' → sisa <b class="' + (sisa < 0 ? 'text-out' : '') + '">' + rp(sisa) + '</b>' + (sisa < 0 ? ' (saldo tidak cukup!)' : ''); }
+  else h.textContent = 'Saldo saat ini ' + rp(saldo);
+}
+function bukaFormTab(jenis, id) {
+  if (!can('tabungan.save')) return toast('Hanya Bendahara dan Sekretaris yang dapat mencatat tabungan.', 'warning');
+  const t = id ? S.data.tabungan.find(x => x.ID === id) : null;
+  S.editTabId = id || null; S.tabJenis = t ? t.Jenis : jenis;
+  $('#mdTabTitle').textContent = (t ? 'Ubah ' : 'Catat ') + (S.tabJenis === 'Tarik' ? 'Penarikan Tabungan' : 'Setoran Tabungan');
+  isiSelect($('#ftbPetani'), [{ v: '', l: '— pilih petani —' }].concat(S.data.petani.filter(p => p.Status === 'Aktif' || (t && t.ID_Petani === p.ID_Petani)).map(p => ({ v: p.ID_Petani, l: p.Nama + (p.Kapling ? ' (' + p.Kapling + ')' : '') }))), t ? t.ID_Petani : '');
+  $('#ftbTanggal').value = t ? t.Tanggal : hari(); $('#ftbJumlah').value = t ? t.Jumlah : ''; $('#ftbKet').value = t ? t.Keterangan : '';
+  hintTab(); modal('mdTab').show();
+}
+async function simpanTab(ev) {
+  ev.preventDefault();
+  const jumlah = Math.round(num($('#ftbJumlah').value)), id = $('#ftbPetani').value;
+  if (!id || !$('#ftbTanggal').value) return toast('Pilih petani dan tanggal.', 'warning');
+  if (!(jumlah > 0)) return toast('Nominal harus lebih dari 0.', 'warning');
+  const pet = S.data.petani.find(p => p.ID_Petani === id);
+  const lama = S.editTabId ? S.data.tabungan.find(t => t.ID === S.editTabId) : null;
+  const payload = { ID: S.editTabId || '', Tanggal: $('#ftbTanggal').value, ID_Petani: id, Jenis: S.tabJenis, Jumlah: jumlah, Keterangan: $('#ftbKet').value.trim() };
+  const sem = Object.assign({}, lama || {}, { ID: lama ? lama.ID : tmpId(), No_Tab: lama ? lama.No_Tab : '(otomatis)', Tanggal: payload.Tanggal, ID_Petani: id, Nama: pet ? pet.Nama : '', Jenis: payload.Jenis, Jumlah: jumlah, Keterangan: payload.Keterangan, Dicatat_Oleh: lama ? lama.Dicatat_Oleh : S.user.nama, _pending: true });
+  const salinan = lama ? Object.assign({}, lama) : null;
+  if (lama) S.data.tabungan[S.data.tabungan.indexOf(lama)] = sem; else S.data.tabungan.push(sem);
+  modal('mdTab').hide(); renderHalaman(S.page); toast('Menyimpan tabungan…', 'info');
+  try {
+    const rec = await api('tabungan.save', payload);
+    S.data.tabungan[S.data.tabungan.findIndex(t => t.ID === sem.ID)] = rec; renderHalaman(S.page); toast('Tabungan tersimpan: ' + rec.No_Tab, 'success');
+  } catch (e) {
+    const i = S.data.tabungan.findIndex(t => t.ID === sem.ID);
+    if (salinan) S.data.tabungan[i] = salinan; else S.data.tabungan.splice(i, 1);
+    renderHalaman(S.page); toast('Gagal menyimpan: ' + e.message, 'danger');
+  }
+}
+function hapusTab(id) {
+  const t = S.data.tabungan.find(x => x.ID === id); if (!t || t._pending) return;
+  konfirmasi('Hapus catatan tabungan?', '<b>' + esc(t.No_Tab) + '</b> (' + (t.Jenis === 'Tarik' ? 'penarikan ' : 'setoran ') + rp(t.Jumlah) + ' · ' + esc(t.Nama) + ') akan dihapus.', async () => {
+    const i = S.data.tabungan.indexOf(t); S.data.tabungan.splice(i, 1); renderHalaman(S.page);
+    try { await api('tabungan.delete', { ID: id }); toast('Catatan tabungan dihapus.', 'success'); }
+    catch (e) { S.data.tabungan.splice(i, 0, t); renderHalaman(S.page); toast('Gagal menghapus: ' + e.message, 'danger'); }
+  }, 'Hapus');
+}
+function exportTabunganExcel() {
+  const rk = rekapTabungan(), rw = riwayatTabungan().slice().reverse();
+  unduhExcel('Tabungan Petani Hamparan D', [
+    { nama: 'Rekap', aoa: [['Petani', 'Kapling', 'Dari slip', 'Setoran', 'Penarikan', 'Saldo']].concat(rk.map(x => [x.nama, x.kapling, x.panen, x.setor, x.tarik, x.saldo])).concat([['TOTAL', '', sum(rk, 'panen'), sum(rk, 'setor'), sum(rk, 'tarik'), sum(rk, 'saldo')]]) },
+    { nama: 'Riwayat', aoa: [['Tanggal', 'No.', 'Petani', 'Jenis', 'Jumlah', 'Keterangan', 'Saldo petani']].concat(rw.map(x => [x.Tanggal, x.No, x.Nama, x.Jenis === 'Tarik' ? 'Penarikan' : 'Setoran', x.Jumlah, x.Ket, x._saldo])) }]);
+}
+function exportTabunganPdf(btn) {
+  const rk = rekapTabungan();
+  unduhPdfHtml(tabelDoc('Rekap Tabungan Petani Hamparan D', 'Total saldo ' + rp(sum(rk, 'saldo')) + ' · dicetak ' + tglIndo(hari()), ['Petani', 'Dari slip', 'Setoran', 'Penarikan', 'Saldo'],
+    rk.map(x => [x.nama + (x.kapling ? ' (' + x.kapling + ')' : ''), fmtN(x.panen), fmtN(x.setor), fmtN(x.tarik), fmtN(x.saldo)]).concat([['TOTAL', fmtN(sum(rk, 'panen')), fmtN(sum(rk, 'setor')), fmtN(sum(rk, 'tarik')), fmtN(sum(rk, 'saldo'))]]), [1, 2, 3, 4]), 'Rekap Tabungan Hamparan D', btn);
+}
+
+/* ============================================================
    TARIF, HARGA TBS, PENGATURAN
    ============================================================ */
 function renderTarif() {
@@ -1243,7 +1397,7 @@ function renderTarif() {
   if (!$('#fhTanggal').value) $('#fhTanggal').value = hari();
   [['ftTransport', 'tarif_transport'], ['ftKelompok', 'tarif_kelompok'], ['ftPenimbang', 'tarif_penimbang'], ['ftKoperasi', 'tarif_koperasi'], ['ftNama', 'nama_kelompok'], ['ftJudul', 'judul_slip'], ['ftAlamat', 'alamat'], ['ftTempat', 'tempat_cetak'], ['ftKetua', 'ketua_nama'], ['ftBendahara', 'bendahara_nama'], ['ftSekretaris', 'sekretaris_nama']]
     .forEach(p => { $('#' + p[0]).value = g[p[1]] === undefined ? '' : g[p[1]]; });
-  $$('#formTarif .fx').forEach(e => { e.disabled = !edit; }); $('#btnLogoHapus').disabled = !edit; tampilPreviewLogo();
+  $$('#formTarif .fx').forEach(e => { e.disabled = !edit; }); $('#btnLogoHapus').disabled = !edit; $$('.btn-ttd-hapus').forEach(b => { b.disabled = !edit; }); tampilPreviewLogo(); tampilPreviewTtd();
   $$('#formHarga .fx').forEach(e => { e.disabled = !editH; });
   const rows = S.data.harga.slice().sort((a, b) => String(b.Tanggal).localeCompare(String(a.Tanggal))).map(x => [
     '<b>' + tglIndo(x.Tanggal) + '</b>', '<b>' + rp(x.Harga) + '</b>', esc(x.Catatan || '–'), esc(x.Dicatat_Oleh),
@@ -1280,8 +1434,9 @@ async function simpanTarif(ev) {
   ev.preventDefault();
   const baru = { tarif_transport: num($('#ftTransport').value), tarif_kelompok: num($('#ftKelompok').value), tarif_penimbang: num($('#ftPenimbang').value), tarif_koperasi: num($('#ftKoperasi').value), nama_kelompok: $('#ftNama').value.trim(), judul_slip: $('#ftJudul').value.trim(), alamat: $('#ftAlamat').value.trim(), tempat_cetak: $('#ftTempat').value.trim(), ketua_nama: $('#ftKetua').value.trim(), bendahara_nama: $('#ftBendahara').value.trim(), sekretaris_nama: $('#ftSekretaris').value.trim() };
   if (S.logoBaru !== null) baru.logo = S.logoBaru;
+  Object.keys(S.ttdBaru).forEach(k => { baru['ttd_' + k] = S.ttdBaru[k]; });
   const lama = Object.assign({}, S.data.pengaturan); Object.assign(S.data.pengaturan, baru);
-  try { S.data.pengaturan = await api('pengaturan.save', baru); S.logoBaru = null; terapkanLogo(); toast('Tarif dan identitas slip tersimpan.', 'success'); }
+  try { S.data.pengaturan = await api('pengaturan.save', baru); S.logoBaru = null; S.ttdBaru = {}; terapkanLogo(); toast('Tarif dan identitas slip tersimpan.', 'success'); }
   catch (e) { S.data.pengaturan = lama; toast('Gagal menyimpan: ' + e.message, 'danger'); }
   renderTarif();
 }
@@ -1343,7 +1498,7 @@ async function simpanPin(ev) {
    ============================================================ */
 const AKSI = {
   slip: id => { const r = S.data.panen.find(x => x.ID === id); if (r) bukaPreview([r]); },
-  editPanen, hapusPanen, editKas: id => bukaFormKas(null, id), hapusKas, bukti: lihatBukti,
+  editPanen, hapusPanen, editKas: id => bukaFormKas(null, id), hapusKas, editTab: id => bukaFormTab(null, id), hapusTab, detailTab: id => { $('#tabPetani').value = id; renderTabungan(); $('#tabRiwayat').scrollIntoView({ behavior: 'smooth' }); }, bukti: lihatBukti,
   editPetani: bukaFormPetani, togglePetani, hapusPetani, editUser: bukaFormUser, resetPin: bukaFormPin, hapusHarga,
   isiHarga: id => { const h = S.data.harga.find(x => x.ID === id); if (h) { $('#fhTanggal').value = h.Tanggal; $('#fhHarga').value = h.Harga; $('#fhCatatan').value = h.Catatan || ''; $('#fhHarga').focus(); } },
   hapusManual: i => { FP.manual.splice(+i, 1); renderManual(); hitungForm(); }
@@ -1405,6 +1560,11 @@ function pasangEvent() {
   $('#fkJumlah').addEventListener('input', hintSaldo); $('#formKas').addEventListener('submit', simpanKas);
   ['kasPeriode', 'kasJenis', 'kasKategori'].forEach(i => $('#' + i).onchange = renderKas); $('#kasSearch').addEventListener('input', debounce(renderKas, 200));
   $('#btnKasExcel').onclick = exportKasExcel; $('#btnKasPdf').onclick = e => exportKasPdf(e.currentTarget);
+  // Tabungan
+  $('#btnTabSetor').onclick = () => bukaFormTab('Setor'); $('#btnTabTarik').onclick = () => bukaFormTab('Tarik');
+  $('#formTab').addEventListener('submit', simpanTab); $('#ftbPetani').onchange = hintTab; $('#ftbJumlah').addEventListener('input', hintTab);
+  $('#tabSearch').addEventListener('input', debounce(renderTabungan, 200)); $('#tabPetani').onchange = renderTabungan; $('#tabJenis').onchange = renderTabungan;
+  $('#btnTabExcel').onclick = exportTabunganExcel; $('#btnTabPdf').onclick = e => exportTabunganPdf(e.currentTarget);
   // Petani
   $('#fptOngJ').onchange = hintOngkos;
   $('#btnAddPetani').onclick = () => bukaFormPetani(''); $('#formPetani').addEventListener('submit', simpanPetani);
@@ -1415,6 +1575,8 @@ function pasangEvent() {
   // Tarif
   $('#ftLogoFile').addEventListener('change', async e => { try { const d = await perkecilLogo(e.target.files[0]); if (d) { S.logoBaru = d; tampilPreviewLogo(); toast('Logo siap. Klik Simpan Tarif & Identitas.', 'info'); } } catch (err) { toast(err.message, 'danger'); } e.target.value = ''; });
   $('#btnLogoHapus').onclick = () => { S.logoBaru = ''; tampilPreviewLogo(); };
+  $$('.ttd-file').forEach(inp => inp.addEventListener('change', async e => { const k = inp.dataset.ttd; try { const d = await olahTtd(e.target.files[0]); if (d) { S.ttdBaru[k] = d; tampilPreviewTtd(); toast('Tanda tangan siap. Klik Simpan Tarif & Identitas.', 'info'); } } catch (err) { toast(err.message, 'danger'); } e.target.value = ''; }));
+  $$('.btn-ttd-hapus').forEach(b => { b.onclick = () => { S.ttdBaru[b.dataset.ttd] = ''; tampilPreviewTtd(); }; });
   $('#btnHapusContoh').onclick = hapusContoh;
   $('#formHarga').addEventListener('submit', simpanHarga); $('#formTarif').addEventListener('submit', simpanTarif);
   // Pengguna

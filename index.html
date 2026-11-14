@@ -231,6 +231,33 @@
         </div>
       </section>
 
+      <!-- ===== TABUNGAN ===== -->
+      <section id="page-tabungan" class="page">
+        <div class="page-head">
+          <div><h2>Tabungan Petani</h2><p>Rekap saldo tabungan tiap petani: potongan tabungan dari slip panen ditambah setoran dan dikurangi penarikan manual.</p></div>
+          <div class="actions">
+            <button class="btn-x btn-pri" id="btnTabSetor" data-akses="tabungan.save"><i class="bi bi-plus-circle"></i> Catat Setoran</button>
+            <button class="btn-x btn-gold" id="btnTabTarik" data-akses="tabungan.save"><i class="bi bi-dash-circle"></i> Catat Penarikan</button>
+            <button class="btn-x btn-out" id="btnTabExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+            <button class="btn-x btn-out" id="btnTabPdf"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+          </div>
+        </div>
+        <div id="tabKpi" class="kpi-grid"></div>
+        <div class="card-x">
+          <div class="c-head"><div class="c-title"><i class="bi bi-piggy-bank"></i> Rekap Tabungan per Petani</div></div>
+          <div class="filters"><input id="tabSearch" class="fx grow" type="search" placeholder="Cari nama petani atau kapling..." aria-label="Cari"></div>
+          <div id="tabRekap"></div>
+        </div>
+        <div class="card-x mt-3">
+          <div class="c-head"><div class="c-title"><i class="bi bi-journal-text"></i> Riwayat Tabungan</div></div>
+          <div class="filters">
+            <select id="tabPetani" class="fs grow" aria-label="Petani"></select>
+            <select id="tabJenis" class="fs" aria-label="Jenis"><option value="">Semua</option><option value="Setor">Setoran</option><option value="Tarik">Penarikan</option></select>
+          </div>
+          <div id="tabRiwayat"></div>
+        </div>
+      </section>
+
       <!-- ===== PETANI ===== -->
       <section id="page-petani" class="page">
         <div class="page-head">
@@ -318,6 +345,23 @@
                 <button type="button" id="btnLogoHapus" class="btn-x btn-out btn-sm"><i class="bi bi-x-lg"></i> Hapus logo</button>
               </div>
               <div class="hint">Logo diperkecil otomatis, tampil di aplikasi dan di kop slip. Klik "Simpan Tarif &amp; Identitas" untuk menyimpan.</div>
+              <div class="sect-lbl">Tanda tangan</div>
+              <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+                <span class="ttd-prev" id="ttdPrev_ketua" data-ttd="ketua"><span class="ttd-kosong">Belum ada</span></span>
+                <div style="flex:1;min-width:180px"><label class="fl">Ketua</label><input class="fx ttd-file" data-ttd="ketua" type="file" accept="image/png,image/jpeg,image/webp"></div>
+                <button type="button" class="btn-x btn-out btn-sm btn-ttd-hapus" data-ttd="ketua"><i class="bi bi-x-lg"></i> Hapus</button>
+              </div>
+              <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+                <span class="ttd-prev" id="ttdPrev_bendahara" data-ttd="bendahara"><span class="ttd-kosong">Belum ada</span></span>
+                <div style="flex:1;min-width:180px"><label class="fl">Bendahara</label><input class="fx ttd-file" data-ttd="bendahara" type="file" accept="image/png,image/jpeg,image/webp"></div>
+                <button type="button" class="btn-x btn-out btn-sm btn-ttd-hapus" data-ttd="bendahara"><i class="bi bi-x-lg"></i> Hapus</button>
+              </div>
+              <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+                <span class="ttd-prev" id="ttdPrev_sekretaris" data-ttd="sekretaris"><span class="ttd-kosong">Belum ada</span></span>
+                <div style="flex:1;min-width:180px"><label class="fl">Sekretaris</label><input class="fx ttd-file" data-ttd="sekretaris" type="file" accept="image/png,image/jpeg,image/webp"></div>
+                <button type="button" class="btn-x btn-out btn-sm btn-ttd-hapus" data-ttd="sekretaris"><i class="bi bi-x-lg"></i> Hapus</button>
+              </div>
+              <div class="hint">Foto/scan tanda tangan di kertas putih. Latar putih dibuang otomatis dan ukuran diperkecil. Tampil di slip di atas nama. Klik "Simpan Tarif &amp; Identitas" untuk menyimpan.</div>
               <button class="btn-x btn-pri w-100 mt-3" type="submit" data-akses="pengaturan.save"><i class="bi bi-check2-circle"></i> Simpan Tarif &amp; Identitas</button>
             </form>
             <div class="card-x mt-3" data-akses="contoh.hapus">
@@ -363,6 +407,22 @@
       </div>
     </div>
     <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn-x btn-pri" id="btnSaveKas"><i class="bi bi-check2-circle"></i> Simpan Transaksi</button></div>
+  </form></div>
+</div>
+
+<!-- ============ MODAL: TABUNGAN ============ -->
+<div class="modal fade" id="mdTab" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="formTab" autocomplete="off">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-piggy-bank"></i> <span id="mdTabTitle">Catat Tabungan</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body">
+      <div class="fgrid c2">
+        <div><label class="fl" for="ftbTanggal">Tanggal <span class="req">*</span></label><input id="ftbTanggal" class="fx" type="date" required></div>
+        <div><label class="fl" for="ftbJumlah">Nominal <span class="req">*</span></label><div class="ig"><span class="add">Rp</span><input id="ftbJumlah" class="fx" type="number" min="1" inputmode="numeric" required></div></div>
+        <div style="grid-column:1/-1"><label class="fl" for="ftbPetani">Petani <span class="req">*</span></label><select id="ftbPetani" class="fs" required></select><div id="ftbHint" class="hint"></div></div>
+        <div style="grid-column:1/-1"><label class="fl" for="ftbKet">Keterangan</label><input id="ftbKet" class="fx" maxlength="200" placeholder="Opsional"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn-x btn-pri"><i class="bi bi-check2-circle"></i> Simpan</button></div>
   </form></div>
 </div>
 
