@@ -234,8 +234,9 @@
       <!-- ===== TABUNGAN ===== -->
       <section id="page-tabungan" class="page">
         <div class="page-head">
-          <div><h2>Tabungan Petani</h2><p>Rekap saldo tabungan tiap petani: potongan tabungan dari slip panen ditambah setoran dan dikurangi penarikan manual.</p></div>
+          <div><h2>Tabungan Petani</h2><p>Rekap saldo tabungan tiap petani: potongan tabungan dari input panen ditambah setoran dan dikurangi penarikan manual. Ketua dapat menambah penabung di luar petani serta mencatat setoran/penarikan manual.</p></div>
           <div class="actions">
+            <button class="btn-x btn-out" id="btnTabPenabung" data-akses="penabung.save"><i class="bi bi-person-plus"></i> Tambah Penabung</button>
             <button class="btn-x btn-pri" id="btnTabSetor" data-akses="tabungan.save"><i class="bi bi-plus-circle"></i> Catat Setoran</button>
             <button class="btn-x btn-gold" id="btnTabTarik" data-akses="tabungan.save"><i class="bi bi-dash-circle"></i> Catat Penarikan</button>
             <button class="btn-x btn-out" id="btnTabExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
@@ -255,6 +256,33 @@
             <select id="tabJenis" class="fs" aria-label="Jenis"><option value="">Semua</option><option value="Setor">Setoran</option><option value="Tarik">Penarikan</option></select>
           </div>
           <div id="tabRiwayat"></div>
+        </div>
+      </section>
+
+      <!-- ===== PINJAMAN ===== -->
+      <section id="page-pinjaman" class="page">
+        <div class="page-head">
+          <div><h2>Pinjaman Kelompok</h2><p>Catatan pinjaman beserta nama peminjam, pembayaran, dan sisa pinjaman. Hanya Ketua yang dapat mencatat.</p></div>
+          <div class="actions">
+            <button class="btn-x btn-pri" id="btnPinBaru" data-akses="pinjaman.save"><i class="bi bi-plus-circle"></i> Tambah Pinjaman</button>
+            <button class="btn-x btn-gold" id="btnPinBayar" data-akses="pinjaman.save"><i class="bi bi-cash-coin"></i> Catat Pembayaran</button>
+            <button class="btn-x btn-out" id="btnPinExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+            <button class="btn-x btn-out" id="btnPinPdf"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+          </div>
+        </div>
+        <div id="pinKpi" class="kpi-grid"></div>
+        <div class="card-x">
+          <div class="c-head"><div class="c-title"><i class="bi bi-people"></i> Rekap per Peminjam</div></div>
+          <div class="filters"><input id="pinSearch" class="fx grow" type="search" placeholder="Cari nama peminjam..." aria-label="Cari"></div>
+          <div id="pinRekap"></div>
+        </div>
+        <div class="card-x mt-3">
+          <div class="c-head"><div class="c-title"><i class="bi bi-journal-text"></i> Riwayat Pinjaman</div></div>
+          <div class="filters">
+            <select id="pinPeminjam" class="fs grow" aria-label="Peminjam"></select>
+            <select id="pinJenis" class="fs" aria-label="Jenis"><option value="">Semua</option><option value="Pinjam">Pinjaman</option><option value="Bayar">Pembayaran</option></select>
+          </div>
+          <div id="pinRiwayat"></div>
         </div>
       </section>
 
@@ -420,6 +448,38 @@
         <div><label class="fl" for="ftbJumlah">Nominal <span class="req">*</span></label><div class="ig"><span class="add">Rp</span><input id="ftbJumlah" class="fx" type="number" min="1" inputmode="numeric" required></div></div>
         <div style="grid-column:1/-1"><label class="fl" for="ftbPetani">Petani <span class="req">*</span></label><select id="ftbPetani" class="fs" required></select><div id="ftbHint" class="hint"></div></div>
         <div style="grid-column:1/-1"><label class="fl" for="ftbKet">Keterangan</label><input id="ftbKet" class="fx" maxlength="200" placeholder="Opsional"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn-x btn-pri"><i class="bi bi-check2-circle"></i> Simpan</button></div>
+  </form></div>
+</div>
+
+<!-- ============ MODAL: PENABUNG ============ -->
+<div class="modal fade" id="mdPenabung" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="formPenabung" autocomplete="off">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-person-plus"></i> <span id="mdPenabungTitle">Tambah Penabung</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body">
+      <div class="fgrid c2">
+        <div style="grid-column:1/-1"><label class="fl" for="fpnNama">Nama penabung <span class="req">*</span></label><input id="fpnNama" class="fx" maxlength="60" required></div>
+        <div><label class="fl" for="fpnHP">Nomor HP</label><input id="fpnHP" class="fx" maxlength="20" inputmode="tel"></div>
+        <div><label class="fl" for="fpnCatatan">Catatan</label><input id="fpnCatatan" class="fx" maxlength="150"></div>
+      </div>
+      <div class="hint">Untuk anggota di luar daftar petani. Petani tidak perlu ditambahkan di sini, mereka otomatis tampil di rekap.</div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn-x btn-pri"><i class="bi bi-check2-circle"></i> Simpan</button></div>
+  </form></div>
+</div>
+
+<!-- ============ MODAL: PINJAMAN ============ -->
+<div class="modal fade" id="mdPin" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="formPin" autocomplete="off">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-cash-coin"></i> <span id="mdPinTitle">Catat Pinjaman</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button></div>
+    <div class="modal-body">
+      <div class="fgrid c2">
+        <div><label class="fl" for="fpiTanggal">Tanggal <span class="req">*</span></label><input id="fpiTanggal" class="fx" type="date" required></div>
+        <div><label class="fl" for="fpiJumlah">Nominal <span class="req">*</span></label><div class="ig"><span class="add">Rp</span><input id="fpiJumlah" class="fx" type="number" min="1" inputmode="numeric" required></div></div>
+        <div style="grid-column:1/-1"><label class="fl" for="fpiNama">Nama peminjam <span class="req">*</span></label><input id="fpiNama" class="fx" list="dlPeminjam" maxlength="60" required><datalist id="dlPeminjam"></datalist><div id="fpiHint" class="hint"></div></div>
+        <div style="grid-column:1/-1"><label class="fl" for="fpiKet">Keterangan</label><input id="fpiKet" class="fx" maxlength="200" placeholder="Opsional, mis. keperluan / cicilan ke-1"></div>
       </div>
     </div>
     <div class="modal-footer"><button type="button" class="btn-x btn-out" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn-x btn-pri"><i class="bi bi-check2-circle"></i> Simpan</button></div>

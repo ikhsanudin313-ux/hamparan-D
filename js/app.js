@@ -15,6 +15,7 @@ const NAV = [
   { id: 'slip', ikon: 'bi-receipt', label: 'Slip BPHP TBS', pendek: 'Slip', bawah: true },
   { id: 'kas', ikon: 'bi-wallet2', label: 'Buku Kas Hamparan', pendek: 'Kas', bawah: true },
   { id: 'tabungan', ikon: 'bi-piggy-bank', label: 'Tabungan Petani', pendek: 'Tabungan' },
+  { id: 'pinjaman', ikon: 'bi-cash-coin', label: 'Pinjaman Kelompok', pendek: 'Pinjaman' },
   { id: 'petani', ikon: 'bi-people', label: 'Data Petani & Kapling', pendek: 'Petani' },
   { id: 'laporan', ikon: 'bi-bar-chart-line', label: 'Laporan', pendek: 'Laporan' },
   { id: 'tarif', ikon: 'bi-sliders', label: 'Tarif, Potongan & Harga TBS', pendek: 'Tarif' },
@@ -24,15 +25,15 @@ const ACL = {
   'petani.save': ['Sekretaris'], 'petani.status': ['Sekretaris'], 'petani.delete': ['Sekretaris'], 'contoh.hapus': ['Ketua', 'Sekretaris'],
   'panen.save': ['Sekretaris'], 'panen.import': ['Sekretaris'], 'panen.delete': ['Sekretaris'],
   'harga.save': ['Bendahara', 'Sekretaris'], 'harga.delete': ['Bendahara', 'Sekretaris'], 'pengaturan.save': ['Bendahara', 'Sekretaris'],
-  'kas.save': ['Bendahara', 'Sekretaris'], 'kas.delete': ['Bendahara', 'Sekretaris'], 'tabungan.save': ['Bendahara', 'Sekretaris'], 'tabungan.delete': ['Bendahara', 'Sekretaris'],
+  'kas.save': ['Bendahara', 'Sekretaris'], 'kas.delete': ['Bendahara', 'Sekretaris'], 'tabungan.save': ['Ketua'], 'tabungan.delete': ['Ketua'], 'penabung.save': ['Ketua'], 'penabung.delete': ['Ketua'], 'pinjaman.save': ['Ketua'], 'pinjaman.delete': ['Ketua'],
   'user.save': ['Ketua', 'Sekretaris'], 'user.resetPin': ['Ketua', 'Sekretaris'], 'log.get': ['Ketua', 'Sekretaris']
 };
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const WARNA = ['#1B5E20', '#2E7D32', '#4CAF50', '#81C784', '#F9A825', '#FFB74D', '#8D6E63', '#90A4AE', '#DC2626', '#6D4C41'];
 
 const S = {
-  token: null, user: null, page: 'dashboard', editId: null, editKasId: null, editTabId: null, tabJenis: 'Setor', kasJenis: 'Pemasukan',
-  data: { petani: [], harga: [], panen: [], kas: [], tabungan: [], pengaturan: {}, kategoriKas: {}, users: [], log: [] },
+  token: null, user: null, page: 'dashboard', editId: null, editKasId: null, editPnbId: null, editPinId: null, pinJenis: 'Pinjam', editTabId: null, tabJenis: 'Setor', kasJenis: 'Pemasukan',
+  data: { petani: [], harga: [], panen: [], kas: [], tabungan: [], penabung: [], pinjaman: [], pengaturan: {}, kategoriKas: {}, users: [], log: [] },
   logoBaru: null, ttdBaru: {}, charts: {}, busy: 0, terakhirSinkron: 0, slipAktif: [], tmpSeq: 0
 };
 
@@ -218,7 +219,7 @@ function muatBootstrap() {
 
 function terapkanData(d) {
   S.user = d.user;
-  S.data.petani = d.petani; S.data.harga = d.harga; S.data.panen = d.panen; S.data.kas = d.kas; S.data.tabungan = d.tabungan || [];
+  S.data.petani = d.petani; S.data.harga = d.harga; S.data.panen = d.panen; S.data.kas = d.kas; S.data.tabungan = d.tabungan || []; S.data.penabung = d.penabung || []; S.data.pinjaman = d.pinjaman || [];
   S.data.pengaturan = d.pengaturan; S.data.kategoriKas = d.kategoriKas; S.data.users = d.users || [];
   S.terakhirSinkron = Date.now();
   terapkanLogo();
@@ -230,7 +231,7 @@ function terapkanData(d) {
 /** Sinkron ulang dari server (tombol / saat tab kembali aktif). */
 async function sinkron(diam) {
   if (S.busy > 0 || !S.token) return;
-  if (S.data.panen.some(r => r._pending) || S.data.kas.some(r => r._pending) || S.data.tabungan.some(r => r._pending) || S.data.petani.some(r => r._pending)) return;
+  if (S.data.panen.some(r => r._pending) || S.data.kas.some(r => r._pending) || S.data.tabungan.some(r => r._pending) || S.data.pinjaman.some(r => r._pending) || S.data.petani.some(r => r._pending)) return;
   try {
     const d = await api('refresh');
     terapkanData(d);
@@ -267,7 +268,7 @@ function tutupSidebar() { $('#sidebar').classList.remove('open'); $('#sbBackdrop
 
 function renderHalaman(id) {
   ({
-    dashboard: renderDashboard, panen: renderPanen, slip: renderSlip, kas: renderKas, tabungan: renderTabungan,
+    dashboard: renderDashboard, panen: renderPanen, slip: renderSlip, kas: renderKas, tabungan: renderTabungan, pinjaman: renderPinjaman,
     petani: renderPetani, laporan: renderLaporan, tarif: renderTarif, pengguna: renderPengguna
   }[id] || (() => { }))();
 }
@@ -1285,10 +1286,11 @@ function rekapTabungan() {
   const m = {};
   const ambil = (id, nama, kapling) => m[id] || (m[id] = { id, nama: nama || '', kapling: kapling || '', panen: 0, setor: 0, tarik: 0 });
   S.data.petani.forEach(p => ambil(p.ID_Petani, p.Nama, p.Kapling));
+  S.data.penabung.forEach(p => { ambil(p.ID_Penabung, p.Nama, '').penabung = true; });
   S.data.panen.forEach(r => { if (num(r.Tabungan) > 0) ambil(r.ID_Petani, r.Nama, r.Kapling).panen += num(r.Tabungan); });
   S.data.tabungan.forEach(t => { const x = ambil(t.ID_Petani, t.Nama); if (t.Jenis === 'Tarik') x.tarik += num(t.Jumlah); else x.setor += num(t.Jumlah); });
   return Object.keys(m).map(k => { const x = m[k]; x.saldo = x.panen + x.setor - x.tarik; return x; })
-    .filter(x => x.panen || x.setor || x.tarik).sort((a, b) => a.nama.localeCompare(b.nama));
+      .filter(x => x.panen || x.setor || x.tarik || x.penabung).sort((a, b) => a.nama.localeCompare(b.nama));
 }
 function saldoTab(id) { const x = rekapTabungan().find(r => r.id === id); return x ? x.saldo : 0; }
 function riwayatTabungan() {
@@ -1305,12 +1307,13 @@ function renderTabungan() {
   const q = ($('#tabSearch').value || '').toLowerCase();
   const tampil = q ? rk.filter(x => (x.nama + ' ' + x.kapling).toLowerCase().includes(q)) : rk;
   const tot = { panen: sum(rk, 'panen'), setor: sum(rk, 'setor'), tarik: sum(rk, 'tarik'), saldo: sum(rk, 'saldo') };
-  $('#tabKpi').innerHTML = kpi('bi-piggy-bank', 'Total saldo tabungan', rp(tot.saldo), rk.length + ' petani menabung', 'gold') + kpi('bi-arrow-down-left', 'Setoran (slip + manual)', rp(tot.panen + tot.setor), 'Potongan slip ' + rp(tot.panen)) + kpi('bi-arrow-up-right', 'Total penarikan', rp(tot.tarik), 'Sudah dibayarkan', 'red');
+  $('#tabKpi').innerHTML = kpi('bi-piggy-bank', 'Total saldo tabungan', rp(tot.saldo), rk.length + ' penabung', 'gold') + kpi('bi-arrow-down-left', 'Setoran (slip + manual)', rp(tot.panen + tot.setor), 'Potongan slip ' + rp(tot.panen)) + kpi('bi-arrow-up-right', 'Total penarikan', rp(tot.tarik), 'Sudah dibayarkan', 'red');
   const edit = can('tabungan.save');
   const baris = tampil.map(x => [
-    '<b>' + esc(x.nama) + '</b>' + (x.kapling ? '<div class="sub">' + esc(x.kapling) + '</div>' : ''),
+    '<b>' + esc(x.nama) + '</b>' + (x.kapling ? '<div class="sub">' + esc(x.kapling) + '</div>' : (x.penabung ? '<div class="sub">Penabung (non-petani)</div>' : '')),
     fmtN(x.panen), fmtN(x.setor), fmtN(x.tarik), '<b class="' + (x.saldo < 0 ? 'text-out' : '') + '">' + fmtN(x.saldo) + '</b>',
-    '<button class="btn-x btn-out btn-sm" data-act="detailTab" data-id="' + esc(x.id) + '"><i class="bi bi-list-ul"></i> Riwayat</button>']);
+    '<button class="btn-x btn-out btn-sm" data-act="detailTab" data-id="' + esc(x.id) + '"><i class="bi bi-list-ul"></i> Riwayat</button>'
+    + (x.penabung && can('penabung.save') ? ' <button class="btn-x btn-out btn-sm btn-ic" data-act="editPenabung" data-id="' + esc(x.id) + '" aria-label="Ubah"><i class="bi bi-pencil"></i></button> <button class="btn-x btn-out btn-sm btn-ic" data-act="hapusPenabung" data-id="' + esc(x.id) + '" aria-label="Hapus"><i class="bi bi-trash text-out"></i></button>' : '')]);
   $('#tabRekap').innerHTML = tabel([{ h: 'Petani' }, { h: 'Dari slip (Rp)', c: 'r' }, { h: 'Setoran (Rp)', c: 'r' }, { h: 'Penarikan (Rp)', c: 'r' }, { h: 'Saldo (Rp)', c: 'r' }, { h: 'Aksi', c: 'r', k: 'acts nolabel' }], baris,
     { kosong: 'Belum ada tabungan. Tabungan terisi otomatis dari potongan di slip panen.', foot: ['<b>TOTAL</b>', '<b>' + fmtN(tot.panen) + '</b>', '<b>' + fmtN(tot.setor) + '</b>', '<b>' + fmtN(tot.tarik) + '</b>', '<b>' + fmtN(tot.saldo) + '</b>', ''] });
   const pil = $('#tabPetani').value || '';
@@ -1338,20 +1341,20 @@ function hintTab() {
   else h.textContent = 'Saldo saat ini ' + rp(saldo);
 }
 function bukaFormTab(jenis, id) {
-  if (!can('tabungan.save')) return toast('Hanya Bendahara dan Sekretaris yang dapat mencatat tabungan.', 'warning');
+  if (!can('tabungan.save')) return toast('Setoran dan penarikan manual hanya dapat dicatat oleh Ketua.', 'warning');
   const t = id ? S.data.tabungan.find(x => x.ID === id) : null;
   S.editTabId = id || null; S.tabJenis = t ? t.Jenis : jenis;
   $('#mdTabTitle').textContent = (t ? 'Ubah ' : 'Catat ') + (S.tabJenis === 'Tarik' ? 'Penarikan Tabungan' : 'Setoran Tabungan');
-  isiSelect($('#ftbPetani'), [{ v: '', l: '— pilih petani —' }].concat(S.data.petani.filter(p => p.Status === 'Aktif' || (t && t.ID_Petani === p.ID_Petani)).map(p => ({ v: p.ID_Petani, l: p.Nama + (p.Kapling ? ' (' + p.Kapling + ')' : '') }))), t ? t.ID_Petani : '');
+  isiSelect($('#ftbPetani'), [{ v: '', l: '— pilih petani —' }].concat(S.data.petani.filter(p => p.Status === 'Aktif' || (t && t.ID_Petani === p.ID_Petani)).map(p => ({ v: p.ID_Petani, l: p.Nama + (p.Kapling ? ' (' + p.Kapling + ')' : '') })).concat(S.data.penabung.map(p => ({ v: p.ID_Penabung, l: p.Nama + ' (penabung)' })))), t ? t.ID_Petani : '');
   $('#ftbTanggal').value = t ? t.Tanggal : hari(); $('#ftbJumlah').value = t ? t.Jumlah : ''; $('#ftbKet').value = t ? t.Keterangan : '';
   hintTab(); modal('mdTab').show();
 }
 async function simpanTab(ev) {
   ev.preventDefault();
   const jumlah = Math.round(num($('#ftbJumlah').value)), id = $('#ftbPetani').value;
-  if (!id || !$('#ftbTanggal').value) return toast('Pilih petani dan tanggal.', 'warning');
+  if (!id || !$('#ftbTanggal').value) return toast('Pilih petani/penabung dan tanggal.', 'warning');
   if (!(jumlah > 0)) return toast('Nominal harus lebih dari 0.', 'warning');
-  const pet = S.data.petani.find(p => p.ID_Petani === id);
+  const pet = S.data.petani.find(p => p.ID_Petani === id) || (S.data.penabung.find(p => p.ID_Penabung === id) ? { Nama: S.data.penabung.find(p => p.ID_Penabung === id).Nama } : null);
   const lama = S.editTabId ? S.data.tabungan.find(t => t.ID === S.editTabId) : null;
   const payload = { ID: S.editTabId || '', Tanggal: $('#ftbTanggal').value, ID_Petani: id, Jenis: S.tabJenis, Jumlah: jumlah, Keterangan: $('#ftbKet').value.trim() };
   const sem = Object.assign({}, lama || {}, { ID: lama ? lama.ID : tmpId(), No_Tab: lama ? lama.No_Tab : '(otomatis)', Tanggal: payload.Tanggal, ID_Petani: id, Nama: pet ? pet.Nama : '', Jenis: payload.Jenis, Jumlah: jumlah, Keterangan: payload.Keterangan, Dicatat_Oleh: lama ? lama.Dicatat_Oleh : S.user.nama, _pending: true });
@@ -1385,6 +1388,138 @@ function exportTabunganPdf(btn) {
   const rk = rekapTabungan();
   unduhPdfHtml(tabelDoc('Rekap Tabungan Petani Hamparan D', 'Total saldo ' + rp(sum(rk, 'saldo')) + ' · dicetak ' + tglIndo(hari()), ['Petani', 'Dari slip', 'Setoran', 'Penarikan', 'Saldo'],
     rk.map(x => [x.nama + (x.kapling ? ' (' + x.kapling + ')' : ''), fmtN(x.panen), fmtN(x.setor), fmtN(x.tarik), fmtN(x.saldo)]).concat([['TOTAL', fmtN(sum(rk, 'panen')), fmtN(sum(rk, 'setor')), fmtN(sum(rk, 'tarik')), fmtN(sum(rk, 'saldo'))]]), [1, 2, 3, 4]), 'Rekap Tabungan Hamparan D', btn);
+}
+
+
+/* ============================================================
+   PENABUNG (non-petani) & PINJAMAN
+   ============================================================ */
+function bukaFormPenabung(id) {
+  if (!can('penabung.save')) return toast('Hanya Ketua yang dapat menambah penabung.', 'warning');
+  const p = id ? S.data.penabung.find(x => x.ID_Penabung === id) : null;
+  S.editPnbId = id || null;
+  $('#mdPenabungTitle').textContent = p ? 'Ubah Penabung' : 'Tambah Penabung';
+  $('#fpnNama').value = p ? p.Nama : ''; $('#fpnHP').value = p ? p.HP : ''; $('#fpnCatatan').value = p ? p.Catatan : '';
+  modal('mdPenabung').show();
+}
+const editPenabung = id => bukaFormPenabung(id);
+async function simpanPenabung(ev) {
+  ev.preventDefault();
+  const payload = { ID_Penabung: S.editPnbId || '', Nama: $('#fpnNama').value.trim(), HP: $('#fpnHP').value.trim(), Catatan: $('#fpnCatatan').value.trim() };
+  if (!payload.Nama) return toast('Nama penabung wajib diisi.', 'warning');
+  try {
+    const rec = await api('penabung.save', payload);
+    const i = S.data.penabung.findIndex(x => x.ID_Penabung === rec.ID_Penabung);
+    if (i >= 0) S.data.penabung[i] = rec; else S.data.penabung.push(rec);
+    S.data.tabungan.forEach(t => { if (t.ID_Petani === rec.ID_Penabung) t.Nama = rec.Nama; });
+    modal('mdPenabung').hide(); renderHalaman(S.page); toast('Penabung tersimpan: ' + rec.Nama, 'success');
+  } catch (e) { toast(e.message, 'danger'); }
+}
+function hapusPenabung(id) {
+  const p = S.data.penabung.find(x => x.ID_Penabung === id); if (!p) return;
+  konfirmasi('Hapus penabung?', '<b>' + esc(p.Nama) + '</b> akan dihapus dari daftar penabung.', async () => {
+    try { await api('penabung.delete', { ID_Penabung: id }); S.data.penabung.splice(S.data.penabung.indexOf(p), 1); renderHalaman(S.page); toast('Penabung dihapus.', 'success'); }
+    catch (e) { toast(e.message, 'danger'); }
+  }, 'Hapus');
+}
+
+function rekapPinjaman() {
+  const m = {};
+  S.data.pinjaman.forEach(x => {
+    const k = String(x.Peminjam).trim().toLowerCase();
+    const r = m[k] || (m[k] = { nama: x.Peminjam, pinjam: 0, bayar: 0, terakhir: '' });
+    if (x.Jenis === 'Bayar') r.bayar += num(x.Jumlah); else r.pinjam += num(x.Jumlah);
+    if (String(x.Tanggal) > r.terakhir) r.terakhir = x.Tanggal;
+  });
+  return Object.keys(m).map(k => { const r = m[k]; r.sisa = r.pinjam - r.bayar; return r; }).sort((a, b) => b.sisa - a.sisa || a.nama.localeCompare(b.nama));
+}
+function sisaPin(nama) { const k = String(nama || '').trim().toLowerCase(); const r = rekapPinjaman().find(x => x.nama.trim().toLowerCase() === k); return r ? r.sisa : 0; }
+function riwayatPinjaman() {
+  const l = S.data.pinjaman.slice().sort((a, b) => String(a.Tanggal).localeCompare(String(b.Tanggal)) || String(a.No_Pin).localeCompare(String(b.No_Pin)));
+  const run = {};
+  l.forEach(x => { const k = String(x.Peminjam).trim().toLowerCase(); run[k] = (run[k] || 0) + (x.Jenis === 'Bayar' ? -1 : 1) * num(x.Jumlah); x._sisa = run[k]; });
+  return l;
+}
+function renderPinjaman() {
+  const rk = rekapPinjaman(), q = ($('#pinSearch').value || '').toLowerCase();
+  const tampil = q ? rk.filter(x => x.nama.toLowerCase().includes(q)) : rk;
+  const tot = { pinjam: sum(rk, 'pinjam'), bayar: sum(rk, 'bayar'), sisa: sum(rk, 'sisa') };
+  $('#pinKpi').innerHTML = kpi('bi-cash-coin', 'Sisa pinjaman beredar', rp(tot.sisa), rk.filter(x => x.sisa > 0).length + ' peminjam belum lunas', 'gold') + kpi('bi-arrow-up-right', 'Total dipinjamkan', rp(tot.pinjam), rk.length + ' peminjam', 'red') + kpi('bi-arrow-down-left', 'Total dibayar', rp(tot.bayar), 'Pembayaran masuk');
+  $('#pinRekap').innerHTML = tabel([{ h: 'Peminjam' }, { h: 'Dipinjam (Rp)', c: 'r' }, { h: 'Dibayar (Rp)', c: 'r' }, { h: 'Sisa (Rp)', c: 'r' }, { h: 'Status' }, { h: 'Aksi', c: 'r', k: 'acts nolabel' }],
+    tampil.map(x => ['<b>' + esc(x.nama) + '</b><div class="sub">Terakhir ' + tglIndo(x.terakhir) + '</div>', fmtN(x.pinjam), fmtN(x.bayar), '<b>' + fmtN(x.sisa) + '</b>',
+      x.sisa > 0 ? '<span class="badge-x b-out">Belum lunas</span>' : '<span class="badge-x b-in">Lunas</span>',
+      '<button class="btn-x btn-out btn-sm" data-act="detailPin" data-id="' + esc(x.nama) + '"><i class="bi bi-list-ul"></i> Riwayat</button>']),
+    { kosong: 'Belum ada pinjaman tercatat.', foot: ['<b>TOTAL</b>', '<b>' + fmtN(tot.pinjam) + '</b>', '<b>' + fmtN(tot.bayar) + '</b>', '<b>' + fmtN(tot.sisa) + '</b>', '', ''] });
+  const pil = $('#pinPeminjam').value || '';
+  isiSelect($('#pinPeminjam'), [{ v: '', l: 'Semua peminjam' }].concat(rk.map(x => ({ v: x.nama, l: x.nama }))), pil);
+  const pm = $('#pinPeminjam').value, j = $('#pinJenis').value, edit = can('pinjaman.save');
+  let r = riwayatPinjaman();
+  if (pm) r = r.filter(x => x.Peminjam === pm);
+  if (j) r = r.filter(x => x.Jenis === j);
+  r = r.reverse();
+  $('#pinRiwayat').innerHTML = tabel([{ h: 'Tanggal / no.' }, { h: 'Peminjam' }, { h: 'Keterangan' }, { h: 'Jumlah (Rp)', c: 'r' }, { h: 'Sisa (Rp)', c: 'r' }, { h: 'Aksi', c: 'r', k: 'acts nolabel' }], r.map(x => ({
+    cls: x._pending ? 'pending' : '',
+    cells: ['<b>' + tglIndo(x.Tanggal) + '</b><div class="sub">' + esc(x.No_Pin) + '</div>', esc(x.Peminjam), esc(x.Keterangan || (x.Jenis === 'Bayar' ? 'Pembayaran' : 'Pinjaman')) + '<div class="sub">oleh ' + esc(x.Dicatat_Oleh) + '</div>',
+      '<span class="fw-800 ' + (x.Jenis === 'Bayar' ? 'text-in' : 'text-out') + '">' + (x.Jenis === 'Bayar' ? '−' : '+') + fmtN(x.Jumlah) + '</span><div class="sub">' + (x.Jenis === 'Bayar' ? 'Pembayaran' : 'Pinjaman') + '</div>',
+      fmtN(x._sisa),
+      edit && !x._pending ? '<button class="btn-x btn-out btn-sm btn-ic" data-act="editPin" data-id="' + esc(x.ID) + '" aria-label="Ubah"><i class="bi bi-pencil"></i></button> <button class="btn-x btn-out btn-sm btn-ic" data-act="hapusPin" data-id="' + esc(x.ID) + '" aria-label="Hapus"><i class="bi bi-trash text-out"></i></button>' : '<span class="muted">–</span>']
+  })), { kosong: 'Belum ada riwayat pinjaman.' });
+}
+function hintPin() {
+  const nm = $('#fpiNama').value.trim(), j = num($('#fpiJumlah').value), h = $('#fpiHint');
+  if (!nm) { h.textContent = ''; return; }
+  const lama = S.editPinId ? S.data.pinjaman.find(x => x.ID === S.editPinId) : null;
+  let sisa = sisaPin(nm); if (lama && String(lama.Peminjam).toLowerCase() === nm.toLowerCase()) sisa -= (lama.Jenis === 'Bayar' ? -1 : 1) * num(lama.Jumlah);
+  if (S.pinJenis === 'Bayar') { const s2 = sisa - j; h.innerHTML = 'Sisa pinjaman ' + rp(sisa) + (j ? ' → setelah bayar <b class="' + (s2 < 0 ? 'text-out' : '') + '">' + rp(s2) + '</b>' + (s2 < 0 ? ' (melebihi sisa!)' : '') : ''); }
+  else h.textContent = sisa ? 'Sisa pinjaman saat ini ' + rp(sisa) : 'Peminjam baru atau sudah lunas.';
+}
+function bukaFormPin(jenis, id) {
+  if (!can('pinjaman.save')) return toast('Hanya Ketua yang dapat mencatat pinjaman.', 'warning');
+  const x = id ? S.data.pinjaman.find(r => r.ID === id) : null;
+  S.editPinId = id || null; S.pinJenis = x ? x.Jenis : jenis;
+  $('#mdPinTitle').textContent = (x ? 'Ubah ' : 'Catat ') + (S.pinJenis === 'Bayar' ? 'Pembayaran Pinjaman' : 'Pinjaman Baru');
+  $('#dlPeminjam').innerHTML = rekapPinjaman().concat(S.data.petani.map(p => ({ nama: p.Nama })), S.data.penabung.map(p => ({ nama: p.Nama }))).map(r => '<option value="' + esc(r.nama) + '">').join('');
+  $('#fpiTanggal').value = x ? x.Tanggal : hari(); $('#fpiJumlah').value = x ? x.Jumlah : ''; $('#fpiNama').value = x ? x.Peminjam : ''; $('#fpiKet').value = x ? x.Keterangan : '';
+  hintPin(); modal('mdPin').show();
+}
+async function simpanPin(ev) {
+  ev.preventDefault();
+  const jumlah = Math.round(num($('#fpiJumlah').value)), nama = $('#fpiNama').value.trim();
+  if (!nama || !$('#fpiTanggal').value) return toast('Isi nama peminjam dan tanggal.', 'warning');
+  if (!(jumlah > 0)) return toast('Nominal harus lebih dari 0.', 'warning');
+  const lama = S.editPinId ? S.data.pinjaman.find(x => x.ID === S.editPinId) : null;
+  const payload = { ID: S.editPinId || '', Tanggal: $('#fpiTanggal').value, Peminjam: nama, Jenis: S.pinJenis, Jumlah: jumlah, Keterangan: $('#fpiKet').value.trim() };
+  const sem = Object.assign({}, lama || {}, { ID: lama ? lama.ID : tmpId(), No_Pin: lama ? lama.No_Pin : '(otomatis)', Tanggal: payload.Tanggal, Peminjam: nama, Jenis: payload.Jenis, Jumlah: jumlah, Keterangan: payload.Keterangan, Dicatat_Oleh: lama ? lama.Dicatat_Oleh : S.user.nama, _pending: true });
+  const salinan = lama ? Object.assign({}, lama) : null;
+  if (lama) S.data.pinjaman[S.data.pinjaman.indexOf(lama)] = sem; else S.data.pinjaman.push(sem);
+  modal('mdPin').hide(); renderHalaman(S.page); toast('Menyimpan pinjaman…', 'info');
+  try {
+    const rec = await api('pinjaman.save', payload);
+    S.data.pinjaman[S.data.pinjaman.findIndex(x => x.ID === sem.ID)] = rec; renderHalaman(S.page); toast('Tersimpan: ' + rec.No_Pin, 'success');
+  } catch (e) {
+    const i = S.data.pinjaman.findIndex(x => x.ID === sem.ID);
+    if (salinan) S.data.pinjaman[i] = salinan; else S.data.pinjaman.splice(i, 1);
+    renderHalaman(S.page); toast('Gagal menyimpan: ' + e.message, 'danger');
+  }
+}
+function hapusPin(id) {
+  const x = S.data.pinjaman.find(r => r.ID === id); if (!x || x._pending) return;
+  konfirmasi('Hapus catatan pinjaman?', '<b>' + esc(x.No_Pin) + '</b> (' + (x.Jenis === 'Bayar' ? 'pembayaran ' : 'pinjaman ') + rp(x.Jumlah) + ' · ' + esc(x.Peminjam) + ') akan dihapus.', async () => {
+    const i = S.data.pinjaman.indexOf(x); S.data.pinjaman.splice(i, 1); renderHalaman(S.page);
+    try { await api('pinjaman.delete', { ID: id }); toast('Catatan dihapus.', 'success'); }
+    catch (e) { S.data.pinjaman.splice(i, 0, x); renderHalaman(S.page); toast('Gagal menghapus: ' + e.message, 'danger'); }
+  }, 'Hapus');
+}
+function exportPinjamanExcel() {
+  const rk = rekapPinjaman(), rw = riwayatPinjaman().slice().reverse();
+  unduhExcel('Pinjaman Hamparan D', [
+    { nama: 'Rekap', aoa: [['Peminjam', 'Dipinjam', 'Dibayar', 'Sisa', 'Status']].concat(rk.map(x => [x.nama, x.pinjam, x.bayar, x.sisa, x.sisa > 0 ? 'Belum lunas' : 'Lunas'])).concat([['TOTAL', sum(rk, 'pinjam'), sum(rk, 'bayar'), sum(rk, 'sisa'), '']]) },
+    { nama: 'Riwayat', aoa: [['Tanggal', 'No.', 'Peminjam', 'Jenis', 'Jumlah', 'Keterangan', 'Sisa']].concat(rw.map(x => [x.Tanggal, x.No_Pin, x.Peminjam, x.Jenis === 'Bayar' ? 'Pembayaran' : 'Pinjaman', x.Jumlah, x.Keterangan, x._sisa])) }]);
+}
+function exportPinjamanPdf(btn) {
+  const rk = rekapPinjaman();
+  unduhPdfHtml(tabelDoc('Rekap Pinjaman Hamparan D', 'Sisa pinjaman ' + rp(sum(rk, 'sisa')) + ' · dicetak ' + tglIndo(hari()), ['Peminjam', 'Dipinjam', 'Dibayar', 'Sisa', 'Status'],
+    rk.map(x => [x.nama, fmtN(x.pinjam), fmtN(x.bayar), fmtN(x.sisa), x.sisa > 0 ? 'Belum lunas' : 'Lunas']).concat([['TOTAL', fmtN(sum(rk, 'pinjam')), fmtN(sum(rk, 'bayar')), fmtN(sum(rk, 'sisa')), '']]), [1, 2, 3]), 'Rekap Pinjaman Hamparan D', btn);
 }
 
 /* ============================================================
@@ -1498,7 +1633,7 @@ async function simpanPin(ev) {
    ============================================================ */
 const AKSI = {
   slip: id => { const r = S.data.panen.find(x => x.ID === id); if (r) bukaPreview([r]); },
-  editPanen, hapusPanen, editKas: id => bukaFormKas(null, id), hapusKas, editTab: id => bukaFormTab(null, id), hapusTab, detailTab: id => { $('#tabPetani').value = id; renderTabungan(); $('#tabRiwayat').scrollIntoView({ behavior: 'smooth' }); }, bukti: lihatBukti,
+  editPanen, hapusPanen, editKas: id => bukaFormKas(null, id), hapusKas, editTab: id => bukaFormTab(null, id), hapusTab, editPenabung, hapusPenabung, editPin: id => bukaFormPin(null, id), hapusPin, detailPin: nm => { $('#pinPeminjam').value = nm; renderPinjaman(); $('#pinRiwayat').scrollIntoView({ behavior: 'smooth' }); }, detailTab: id => { $('#tabPetani').value = id; renderTabungan(); $('#tabRiwayat').scrollIntoView({ behavior: 'smooth' }); }, bukti: lihatBukti,
   editPetani: bukaFormPetani, togglePetani, hapusPetani, editUser: bukaFormUser, resetPin: bukaFormPin, hapusHarga,
   isiHarga: id => { const h = S.data.harga.find(x => x.ID === id); if (h) { $('#fhTanggal').value = h.Tanggal; $('#fhHarga').value = h.Harga; $('#fhCatatan').value = h.Catatan || ''; $('#fhHarga').focus(); } },
   hapusManual: i => { FP.manual.splice(+i, 1); renderManual(); hitungForm(); }
@@ -1565,6 +1700,12 @@ function pasangEvent() {
   $('#formTab').addEventListener('submit', simpanTab); $('#ftbPetani').onchange = hintTab; $('#ftbJumlah').addEventListener('input', hintTab);
   $('#tabSearch').addEventListener('input', debounce(renderTabungan, 200)); $('#tabPetani').onchange = renderTabungan; $('#tabJenis').onchange = renderTabungan;
   $('#btnTabExcel').onclick = exportTabunganExcel; $('#btnTabPdf').onclick = e => exportTabunganPdf(e.currentTarget);
+  $('#btnTabPenabung').onclick = () => bukaFormPenabung(); $('#formPenabung').addEventListener('submit', simpanPenabung);
+  // Pinjaman
+  $('#btnPinBaru').onclick = () => bukaFormPin('Pinjam'); $('#btnPinBayar').onclick = () => bukaFormPin('Bayar');
+  $('#formPin').addEventListener('submit', simpanPin); $('#fpiNama').addEventListener('input', hintPin); $('#fpiJumlah').addEventListener('input', hintPin);
+  $('#pinSearch').addEventListener('input', debounce(renderPinjaman, 200)); $('#pinPeminjam').onchange = renderPinjaman; $('#pinJenis').onchange = renderPinjaman;
+  $('#btnPinExcel').onclick = exportPinjamanExcel; $('#btnPinPdf').onclick = e => exportPinjamanPdf(e.currentTarget);
   // Petani
   $('#fptOngJ').onchange = hintOngkos;
   $('#btnAddPetani').onclick = () => bukaFormPetani(''); $('#formPetani').addEventListener('submit', simpanPetani);
