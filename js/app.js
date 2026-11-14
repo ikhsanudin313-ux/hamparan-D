@@ -1253,8 +1253,8 @@ const UPAH_CSS = '.up-grid{width:100%;border-collapse:collapse;table-layout:fixe
   + '.up-t{text-align:center;font-weight:bold;font-size:9pt;margin-bottom:4mm}.up-p{font-weight:bold;font-size:8.5pt;margin-bottom:2mm}'
   + '.up-y{background:#FFFF00;padding:1px 8px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
   + '.up-tb{width:100%;border-collapse:collapse;font-size:8pt}.up-tb th,.up-tb td{border:1px solid #000;padding:2px 4px;height:5mm}'
-  + '.up-tb th{font-weight:normal;text-align:center}.up-tb td.c{text-align:center}.up-tb td.r{text-align:right}'
-  + '.up-tb tr.tot td{font-weight:bold;text-align:center;border-top:2px solid #000}.up-tb tr.tot td.y{background:#FFFF00;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+  + '.up-tb th{font-weight:normal;text-align:center}.up-tb td.c{text-align:center}.up-tb td.r{text-align:right;font-size:9.5pt}'
+  + '.up-tb tr.tot td{font-weight:bold;font-size:10pt;text-align:center;border-top:2px solid #000}.up-tb tr.tot td.y{background:#FFFF00;text-align:right;font-size:11.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}';
 function upahTersaring() {
   const d = $('#upDari').value, sp = $('#upSampai').value;
   return S.data.upah.filter(x => (!d || String(x.Tanggal) >= d) && (!sp || String(x.Tanggal) <= sp));
