@@ -428,7 +428,7 @@ function buatInsight(per) {
 /* ============================================================
    INPUT PANEN
    ============================================================ */
-const FP = { touched: {}, manual: [], siap: false, ongMode: 'perkg' };
+const FP = { touched: {}, manual: [], siap: false, ongMode: 'perkg', hargaMode: 'auto' };
 function setOngMode(m) {
   FP.ongMode = m === 'tetap' ? 'tetap' : 'perkg';
   $$('#fpOngMode button').forEach(b => b.classList.toggle('on', b.dataset.m === FP.ongMode));
@@ -455,7 +455,7 @@ function renderPanen() {
 }
 
 function resetFormPanen(awal) {
-  S.editId = null; FP.touched = {}; FP.manual = [];
+  S.editId = null; FP.touched = {}; FP.manual = []; setHargaMode('auto');
   ['fpBruto', 'fpSortasi', 'fpNetto', 'fpTabungan', 'fpMasjid', 'fpOngkos', 'fpCatatan'].forEach(id => { $('#' + id).value = ''; });
   $('#fpNetto').readOnly = false; setOngMode('perkg');
   $('#fpTanggal').value = hari();
@@ -492,7 +492,7 @@ function renderManual() {
 
 /** Samakan harga semua catatan panen dengan harga TBS pada tanggalnya. */
 function sinkronHargaPanen() {
-  const beda = S.data.panen.filter(r => !r._pending && hargaPada(String(r.Tanggal)) > 0 && hargaPada(String(r.Tanggal)) !== num(r.Harga));
+  const beda = S.data.panen.filter(r => !r._pending && r.Harga_Manual !== 'Ya' && hargaPada(String(r.Tanggal)) > 0 && hargaPada(String(r.Tanggal)) !== num(r.Harga));
   if (!beda.length) return toast('Semua catatan panen sudah memakai harga sesuai tanggalnya.', 'success');
   konfirmasi('Sesuaikan harga ke tanggal?', '<b>' + beda.length + '</b> catatan panen memakai harga yang berbeda dari harga TBS pada tanggalnya. Hasil kotor dan gaji bersih akan dihitung ulang (potongan tidak berubah).', async () => {
     try {
@@ -508,7 +508,7 @@ function bacaFormPanen() {
   const tgl = $('#fpTanggal').value;
   const bruto = num($('#fpBruto').value), sortasi = num($('#fpSortasi').value);
   const netto = bruto > 0 ? +(bruto - sortasi).toFixed(2) : num($('#fpNetto').value);
-  const harga = tgl ? hargaPada(tgl) : 0;
+  const harga = FP.hargaMode === 'manual' ? Math.round(num($('#fpHarga').value)) : (tgl ? hargaPada(tgl) : 0);
   const manual = FP.manual.filter(m => String(m.nama).trim() && num(m.jumlah) > 0).map(m => ({ nama: String(m.nama).trim(), jumlah: Math.round(num(m.jumlah)) }));
   let tarif = tarifAktif();
   const lama = S.editId ? S.data.panen.find(r => r.ID === S.editId) : null;
@@ -519,15 +519,35 @@ function bacaFormPanen() {
   if (!tgl) msg = 'Tanggal wajib diisi.';
   else if (!pet) msg = 'Pilih petani terlebih dahulu.';
   else if (!(netto > 0)) msg = 'Berat netto harus lebih dari 0 kg.';
-  else if (!(hrg > 0)) msg = 'Harga TBS untuk tanggal ini belum diatur (hubungi Bendahara).';
+  else if (!(hrg > 0)) msg = FP.hargaMode === 'manual' ? 'Isi harga TBS manual.' : 'Harga TBS untuk tanggal ini belum diatur. Hubungi Bendahara atau pilih harga Manual.';
   else if (calc.bersih < 0) msg = 'Total potongan melebihi hasil kotor.';
   return {
     ok: !msg, msg, pet, calc, tarif, tgl, hrg, manual,
-    payload: { ID: S.editId || '', Tanggal: tgl, ID_Petani: pet ? pet.ID_Petani : '', Bruto: bruto > 0 ? bruto : '', Sortasi: bruto > 0 ? sortasi : '', Netto: netto, Tabungan: calc.tabungan, Masjid: calc.masjid, Ongkos_Mode: FP.ongMode, Ongkos_Rate: FP.ongMode === 'perkg' ? num($('#fpOngkos').value) : '', Ongkos_Panen: FP.ongMode === 'tetap' ? Math.round(num($('#fpOngkos').value)) : 0, Manual_Items: manual, Catatan: $('#fpCatatan').value.trim() }
+    payload: { ID: S.editId || '', Harga_Mode: FP.hargaMode, Harga_Input: FP.hargaMode === 'manual' ? hrg : '', Tanggal: tgl, ID_Petani: pet ? pet.ID_Petani : '', Bruto: bruto > 0 ? bruto : '', Sortasi: bruto > 0 ? sortasi : '', Netto: netto, Tabungan: calc.tabungan, Masjid: calc.masjid, Ongkos_Mode: FP.ongMode, Ongkos_Rate: FP.ongMode === 'perkg' ? num($('#fpOngkos').value) : '', Ongkos_Panen: FP.ongMode === 'tetap' ? Math.round(num($('#fpOngkos').value)) : 0, Manual_Items: manual, Catatan: $('#fpCatatan').value.trim() }
   };
 }
 
+/** Harga TBS di formulir: Otomatis (ikut harga pada tanggal) atau Manual (diisi sendiri). */
+function setHargaMode(m) {
+  FP.hargaMode = m === 'manual' ? 'manual' : 'auto';
+  $$('#fpHargaMode button').forEach(b => b.classList.toggle('on', b.dataset.m === FP.hargaMode));
+  if (FP.hargaMode === 'manual' && !num($('#fpHarga').value)) $('#fpHarga').value = hargaPada($('#fpTanggal').value || hari()) || '';
+}
+function sinkronFormHarga() {
+  const tgl = $('#fpTanggal').value || hari(), resmi = hargaPada(tgl), el = $('#fpHarga'), h = $('#fpHargaHint');
+  const lama = S.editId ? S.data.panen.find(r => r.ID === S.editId) : null;
+  if (FP.hargaMode === 'auto') {
+    el.value = resmi || ''; el.readOnly = true;
+    h.innerHTML = resmi ? 'Otomatis mengikuti harga TBS tanggal ' + tglIndo(tgl) + ': <b>' + rp(resmi) + '/kg</b>.' : '<span class="text-warn">Harga TBS untuk tanggal ini belum diatur.</span> Pilih <b>Manual</b> untuk mengisi sendiri.';
+    if (lama && num(lama.Harga) !== resmi && resmi) h.innerHTML += ' <span class="text-warn">Harga tersimpan sebelumnya ' + rp(lama.Harga) + '; setelah disimpan akan memakai ' + rp(resmi) + '.</span>';
+  } else {
+    el.readOnly = false;
+    h.innerHTML = 'Harga manual untuk transaksi ini' + (resmi ? ' (harga yang diatur pada tanggal ini: ' + rp(resmi) + '/kg)' : '') + '. Tidak ikut berubah saat harga TBS diatur ulang.';
+  }
+}
+
 function hitungForm() {
+  sinkronFormHarga();
   netoDariBruto();
   isiDefaultPotongan();
   const v = bacaFormPanen();
@@ -570,7 +590,7 @@ function editPanen(id) {
   navigateTo('panen');
   isiSelect($('#fpPetani'), [{ v: r.ID_Petani, l: (r.Kapling ? r.Kapling + ' — ' : '') + r.Nama }].concat(S.data.petani.filter(p => p.Status === 'Aktif' && p.ID_Petani !== r.ID_Petani).map(p => ({ v: p.ID_Petani, l: (p.Kapling ? p.Kapling + ' — ' : '') + p.Nama }))), r.ID_Petani);
   S.editId = id; FP.touched = { fpTabungan: 1, fpMasjid: 1, fpOngkos: 1 };
-  $('#fpTanggal').value = r.Tanggal; $('#fpBruto').value = r.Bruto === '' ? '' : r.Bruto; $('#fpSortasi').value = r.Sortasi === '' ? '' : r.Sortasi;
+  $('#fpTanggal').value = r.Tanggal; $('#fpHarga').value = r.Harga; setHargaMode(r.Harga_Manual === 'Ya' ? 'manual' : 'auto'); $('#fpBruto').value = r.Bruto === '' ? '' : r.Bruto; $('#fpSortasi').value = r.Sortasi === '' ? '' : r.Sortasi;
   $('#fpNetto').value = r.Netto; $('#fpTabungan').value = r.Tabungan; $('#fpMasjid').value = r.Masjid; if (num(r.Ongkos_Rate) > 0) { setOngMode('perkg'); $('#fpOngkos').value = r.Ongkos_Rate; } else if (num(r.Ongkos_Panen) > 0) { setOngMode('tetap'); $('#fpOngkos').value = r.Ongkos_Panen; } else { setOngMode('perkg'); $('#fpOngkos').value = 0; }
   $('#fpCatatan').value = r.Catatan || ''; FP.manual = parseManual(r.Manual_Items).map(m => ({ nama: m.nama, jumlah: m.jumlah }));
   $('#fpEditBanner').hidden = false; $('#fpEditNo').textContent = r.No_Bukti;
@@ -585,7 +605,7 @@ async function simpanPanen(cetak) {
   const c = v.calc, p = v.pet, lama = S.editId ? S.data.panen.find(r => r.ID === S.editId) : null;
   const sementara = {
     ID: lama ? lama.ID : tmpId(), No_Bukti: lama ? lama.No_Bukti : '(otomatis)', Tanggal: v.tgl, Gaji_Bulan: labelBulanPenuh(bln(v.tgl)),
-    ID_Petani: p.ID_Petani, Nama: p.Nama, Kapling: p.Kapling, Bruto: v.payload.Bruto, Sortasi: v.payload.Sortasi, Netto: c.netto, Harga: c.harga, Kotor: c.kotor,
+    ID_Petani: p.ID_Petani, Nama: p.Nama, Kapling: p.Kapling, Bruto: v.payload.Bruto, Sortasi: v.payload.Sortasi, Netto: c.netto, Harga: c.harga, Harga_Manual: FP.hargaMode === 'manual' ? 'Ya' : '', Kotor: c.kotor,
     Tarif_Transport: v.tarif.transport, Tarif_Kelompok: v.tarif.kelompok, Tarif_Penimbang: v.tarif.penimbang, Tarif_Koperasi: v.tarif.koperasi,
     Transport: c.transport, Kelompok: c.kelompok, Penimbang: c.penimbang, Koperasi: c.koperasi, Tabungan: c.tabungan, Masjid: c.masjid,
     Ongkos_Rate: FP.ongMode === 'perkg' ? (num($('#fpOngkos').value) || '') : '', Ongkos_Panen: c.ongkos, Pajak: 0, Manual_Items: v.manual.length ? JSON.stringify(v.manual) : '', Potongan_Manual: c.manualTotal,
@@ -1884,6 +1904,8 @@ function pasangEvent() {
   $('#btnImpor').onclick = () => { IMPOR.rows = []; $('#imporFile').value = ''; $('#imporSum').innerHTML = ''; $('#imporPreview').innerHTML = ''; $('#btnImporSimpan').disabled = true; modal('mdImpor').show(); };
   $('#btnTemplate').onclick = unduhTemplatPanen; $('#imporFile').addEventListener('change', e => pilihBerkasImpor(e.target.files[0])); $('#btnImporSimpan').onclick = simpanImpor;
   $('#btnSinkronHarga').onclick = sinkronHargaPanen;
+  $('#fpHarga').addEventListener('input', () => { hitungForm(); });
+  $$('#fpHargaMode button').forEach(b => b.onclick = () => { setHargaMode(b.dataset.m); hitungForm(); });
   $('#btnSavePanen').onclick = () => simpanPanen(false);
   $('#btnSavePrint').onclick = () => simpanPanen(true);
   $('#btnResetPanen').onclick = () => { resetFormPanen(); try { localStorage.removeItem('hd_draft_panen'); } catch (e) { /* abaikan */ } };
