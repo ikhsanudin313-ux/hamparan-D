@@ -598,10 +598,17 @@ function editPanen(id) {
 }
 
 /** Simpan panen — Optimistic UI: tampil dulu, sinkron di latar belakang, rollback bila gagal. */
-async function simpanPanen(cetak) {
+async function simpanPanen(cetak, lewatiDuplikat) {
   if (!can('panen.save')) return toast('Hanya Sekretaris yang dapat menyimpan data panen.', 'warning');
   const v = hitungForm();
   if (!v.ok) return toast(v.msg, 'warning');
+  // Peringatan: petani yang sama sudah punya data panen pada tanggal yang sama
+  const dup = S.data.panen.filter(r => r.ID_Petani === v.pet.ID_Petani && String(r.Tanggal) === v.tgl && r.ID !== S.editId);
+  if (dup.length && !lewatiDuplikat) {
+    const daftar = dup.map(r => '<div class="calc-row"><span><b>' + esc(r.No_Bukti) + '</b><div class="sub">dicatat ' + esc(r.Dicatat_Oleh || '-') + '</div></span><span class="num">' + fmtKg(r.Netto) + ' kg<div class="sub">bersih ' + rp(r.Gaji_Bersih) + '</div></span></div>').join('');
+    konfirmasi('Data petani ini sudah diinput', '<div class="text-warn mb-2"><i class="bi bi-exclamation-triangle"></i> <b>' + esc(v.pet.Nama) + '</b> sudah memiliki ' + dup.length + ' data panen pada <b>' + tglIndo(v.tgl) + '</b>:</div>' + daftar + '<div class="mt-2">Yang akan Anda simpan: <b>' + fmtKg(v.calc.netto) + ' kg</b>, bersih ' + rp(v.calc.bersih) + '. Tetap simpan sebagai data baru?</div>', () => simpanPanen(cetak, true), 'Tetap simpan');
+    return;
+  }
   const c = v.calc, p = v.pet, lama = S.editId ? S.data.panen.find(r => r.ID === S.editId) : null;
   const sementara = {
     ID: lama ? lama.ID : tmpId(), No_Bukti: lama ? lama.No_Bukti : '(otomatis)', Tanggal: v.tgl, Gaji_Bulan: labelBulanPenuh(bln(v.tgl)),
